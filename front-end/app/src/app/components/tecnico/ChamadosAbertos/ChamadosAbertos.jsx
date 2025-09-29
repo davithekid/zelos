@@ -18,7 +18,6 @@ export default function ChamadosAbertos({ funcionario }) {
   const fetchData = async () => {
     if (!funcionario || !funcionario.id) return;
     
-    // Mostra o loader se a lista estiver vazia e estivermos a carregar
     if (!chamadosAbertos.length) {
       setIsLoading(true);
     }
@@ -26,24 +25,16 @@ export default function ChamadosAbertos({ funcionario }) {
     
     try {
       const [chamadosResponse, pedidosResponse] = await Promise.all([
-        // Busca todos os chamados (o filtro de 'aberto' será feito localmente)
         api.get('/chamados'), 
-        // Busca o status dos pedidos do técnico logado
         api.get('/pedidos-chamado/meus-pedidos')
       ]);
       
       const todosChamados = chamadosResponse.data;
-      
-      // Mapeia os pedidos para fácil acesso pelo ID do chamado
       const pedidosMap = pedidosResponse.data.reduce((acc, pedido) => {
         acc[pedido.chamado_id] = pedido.status;
         return acc;
       }, {});
       setPedidosDoTecnico(pedidosMap);
-      
-      // CORREÇÃO AQUI: Apenas filtramos por 'aberto'.
-      // O CardChamado agora é responsável por lidar com o status do pedido (pendente/recusado/nenhum).
-      // Se um chamado for atribuído (status != 'aberto'), ele será filtrado
       const abertos = todosChamados.filter(chamado => {
         return chamado.status === 'aberto';
       });
@@ -60,13 +51,11 @@ export default function ChamadosAbertos({ funcionario }) {
   
   useEffect(() => {
     fetchData();
-    // Configura o polling para atualizar a lista a cada 10 segundos, caso o status mude no backend
     const interval = setInterval(fetchData, 10000); 
     return () => clearInterval(interval);
   }, [funcionario]);
 
   const handleAtribuir = async (chamadoId) => {
-    // Verifica o status atual antes de enviar para evitar pedidos duplicados no frontend
     const statusPedidoAtual = pedidosDoTecnico[chamadoId];
     if (statusPedidoAtual && statusPedidoAtual !== 'recusado') {
         alert("Você já tem um pedido pendente ou ele foi aceito/recusado. Aguarde a atualização da lista.");
@@ -74,13 +63,8 @@ export default function ChamadosAbertos({ funcionario }) {
     }
     
     try {
-      // 1. Envia o pedido
       await api.post('/pedidos-chamado', { chamado_id: chamadoId });
-      
-      // 2. Atualiza o estado local imediatamente para mostrar 'Pedido Enviado' no botão
       setPedidosDoTecnico(prev => ({ ...prev, [chamadoId]: 'pendente' }));
-      
-      // 3. Mostra o modal de confirmação
       setModalAberto(true); 
     } catch (err) {
       console.error("Erro ao enviar pedido:", err);

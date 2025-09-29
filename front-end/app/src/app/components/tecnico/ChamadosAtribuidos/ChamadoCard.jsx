@@ -8,27 +8,17 @@ const formatarData = (dataString) => {
     const formatted = new Date(dataString).toLocaleDateString('pt-BR', options);
     return formatted.replace(',', ' às');
 };
-
-// 💡 Define a URL base da sua API (onde a pasta /uploads está sendo servida)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const PLACEHOLDER_URL = "/placeholder-image.png";
 
 export default function ChamadoCard({ chamado, onVerDetalhes, onAbrirApontamento }) {
     
     const usuarioNome = chamado.usuario?.nome || "Solicitante anônimo";
-    
-    // 💡 CORREÇÃO CRÍTICA: Constrói a URL completa
     let imageUrl = PLACEHOLDER_URL;
     
     if (chamado.img_url) {
-        // Combina a base da API com o caminho relativo salvo no banco (ex: /uploads/arquivo.jpg)
         imageUrl = `${API_BASE_URL}${chamado.img_url}`; 
     }
-    
-    // Para debug no console:
-    // console.log(`[Card Chamado ${chamado.id}] URL da Imagem:`, imageUrl); 
-
-
     return (
         <motion.div
             layout
@@ -41,12 +31,10 @@ export default function ChamadoCard({ chamado, onVerDetalhes, onAbrirApontamento
         >
             <div className="h-48 overflow-hidden cursor-pointer" onClick={onVerDetalhes}>
                 <img
-                    // 💡 Usa a URL completa ou o placeholder
                     src={imageUrl}
                     alt={chamado.titulo}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     loading="lazy"
-                    // 💡 Usa o placeholder apenas se o carregamento da imagem falhar
                     onError={(e) => { e.currentTarget.src = PLACEHOLDER_URL; }} 
                 />
             </div>

@@ -4,8 +4,6 @@ import Image from 'next/image';
 
 export default function ModalImagem({ url, onClose }) {
   if (!url) return null;
-
-  // Função para garantir a URL correta
   const getSafeUrl = (imageUrl) => {
     if (!imageUrl) return null;
     if (imageUrl.startsWith('http')) return imageUrl;

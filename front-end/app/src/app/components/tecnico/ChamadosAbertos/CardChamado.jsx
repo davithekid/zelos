@@ -1,16 +1,8 @@
 'use client';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-
-/**
- * Componente Botão de Ação: Mostra o status do pedido do técnico logado
- * @param {string} status - Pode ser 'pendente', 'recusado', 'aceito', ou undefined (sem pedido)
- * @param {function} onClick - Função a ser chamada ao clicar
- */
 const ActionButton = ({ status, onClick }) => {
   let config;
-  
-  // O status é passado como 'pendente', 'aceito', 'recusado' ou undefined/null (sem pedido)
   switch (status) {
     case 'pendente':
       config = {
@@ -53,11 +45,7 @@ const ActionButton = ({ status, onClick }) => {
 };
 
 export default function CardChamado({ chamado, pedidosDoTecnico, onAtribuir, onAbrirImagem }) {
-  
-  // pedidosDoTecnico deve ser um mapa { chamado_id: status } que contém o status do pedido do técnico logado
   const meuPedidoStatus = pedidosDoTecnico[chamado.id];
-
-  // Função para construir a URL da imagem corretamente
   const getImageUrl = (imgPath) => {
     if (!imgPath) return "/placeholder.png";
     if (imgPath.startsWith('http')) return imgPath;
@@ -116,13 +104,11 @@ export default function CardChamado({ chamado, pedidosDoTecnico, onAtribuir, onA
             </div>
           )}
         </div>
-        
-        {/* Etiqueta de Status Global do Chamado */}
         <div className="mt-3">
              <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                 chamado.tecnico_id 
-                ? 'bg-blue-100 text-blue-700' // Atribuído
-                : 'bg-red-100 text-red-700' // Aberto
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-red-100 text-red-700' 
              }`}>
                 {chamado.tecnico_id ? 'ATRIBUÍDO' : 'ABERTO'}
             </span>
@@ -144,8 +130,6 @@ export default function CardChamado({ chamado, pedidosDoTecnico, onAtribuir, onA
               </button>
             )}
           </div>
-          
-          {/* Ação de Pedido: Visível apenas se o chamado NÃO estiver atribuído */}
           {!chamado.tecnico_id ? (
             <ActionButton 
                 status={meuPedidoStatus} 

@@ -4,11 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FiFilter, FiEdit, FiX, FiPlus, FiSearch, FiAlertTriangle, FiCheckCircle, FiChevronDown, FiInbox, FiSlash, FiLoader, FiChevronLeft, FiChevronRight, FiPackage, FiMonitor, FiMapPin, FiRefreshCw, FiTrash2} from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-// Assumindo que o 'api' está no caminho correto
 import api from '../../../lib/api'; 
-
-// --- UTILS & SHARED COMPONENTS (Padrão Unificado) ---
-
 const capitalize = (s = '') => {
     if (!s) return '';
     const str = s.replace(/_/g, ' ');
@@ -17,7 +13,6 @@ const capitalize = (s = '') => {
 
 const Spinner = () => <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />;
 
-// Componente de Card de Resumo (ReportCard)
 const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, isClickable = true }) => {
     const baseClasses = "flex flex-col p-5 rounded-xl shadow-lg transition-all duration-300 transform bg-white";
     
@@ -57,7 +52,6 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
     );
 };
 
-// Componente de Paginação (Paginacao)
 const Paginacao = ({ currentPage, totalPages, onPageChange }) => {
     const pages = useMemo(() => {
         const p = [];
@@ -143,8 +137,6 @@ const Paginacao = ({ currentPage, totalPages, onPageChange }) => {
     );
 };
 
-// --- MODALS ---
-
 function ConfirmationModal({ title, message, onConfirm, onCancel, isLoading }) {
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -223,8 +215,6 @@ function PatrimonioModal({ equipamento, onClose, onSave, isLoading }) {
     );
 }
 
-// --- COMPONENTE PRINCIPAL: GERENCIAR PATRIMÔNIOS ---
-
 export default function GerenciarPatrimonios() {
     const [equipamentos, setEquipamentos] = useState([]);
     const [pesquisa, setPesquisa] = useState('');
@@ -232,27 +222,15 @@ export default function GerenciarPatrimonios() {
     const [modal, setModal] = useState({ formOpen: false, deleteOpen: false });
     const [selectedEquipamento, setSelectedEquipamento] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
-
-    // Cards de Resumo: Total, Em Manutenção, Sem Localização
     const [counts, setCounts] = useState({ todos: 0, emManutencao: 0, semLocalizacao: 0 });
     const [countsLoading, setCountsLoading] = useState(true);
-    const [filtroStatus, setFiltroStatus] = useState(''); // '', 'emManutencao', 'disponivel', 'semLocalizacao'
-
-    // Paginação
+    const [filtroStatus, setFiltroStatus] = useState(''); 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10); 
-
-
-    // --- FUNÇÕES DE BUSCA E CONTAGEM ---
-
     const fetchCounts = useCallback(async (allEquipamentos = null) => {
         setCountsLoading(true);
         try {
-            // NOTE: A API real precisaria fornecer o status de manutenção (e.g., equipamento.status).
-            // Aqui, simularemos "em manutenção" como um filtro genérico para demonstrar a estrutura do card.
             const data = allEquipamentos || (await api.get('/equipamentos')).data || [];
-
-            // SIMULAÇÃO: 10% dos equipamentos estão em manutenção (Para fins de demonstração)
             const emManutencaoCount = Math.floor(data.length * 0.1); 
             const semLocalizacaoCount = data.filter(eq => !eq.sala || eq.sala.trim() === '').length;
 
@@ -298,8 +276,6 @@ export default function GerenciarPatrimonios() {
         setCurrentPage(1);
     }, [pesquisa, filtroStatus]);
 
-    // --- LÓGICA DE AÇÕES (CRUD) ---
-
     const handleSave = async (data) => {
         setActionLoading(true);
         try {
@@ -344,14 +320,11 @@ export default function GerenciarPatrimonios() {
         setSelectedEquipamento(equipamento);
         setModal({ deleteOpen: false, formOpen: true });
     };
-    
-    // --- LÓGICA DE FILTRAGEM E PAGINAÇÃO ---
 
     const filteredEquipamentos = useMemo(() => {
         const p = pesquisa.toLowerCase();
         
-        // SIMULAÇÃO: Criterio para filtro de "Em Manutenção"
-        const isEmManutencao = (index) => index % 10 === 0; // Exemplo simples
+        const isEmManutencao = (index) => index % 10 === 0;
 
         return equipamentos.filter((eq, index) => {
             const matchesSearch = (eq.patrimonio || '').toLowerCase().includes(p) ||
@@ -360,12 +333,10 @@ export default function GerenciarPatrimonios() {
             
             let matchesStatus = true;
             if (filtroStatus === 'emManutencao') {
-                // Simulação de filtro: se o card de 'Em Manutenção' foi clicado
                 matchesStatus = isEmManutencao(index); 
             } else if (filtroStatus === 'semLocalizacao') {
                 matchesStatus = !eq.sala || eq.sala.trim() === '';
             } else if (filtroStatus === 'disponivel') {
-                // Simulação: Não está em manutenção E tem localização
                 matchesStatus = !isEmManutencao(index) && (eq.sala && eq.sala.trim() !== '');
             }
 
@@ -378,26 +349,18 @@ export default function GerenciarPatrimonios() {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredEquipamentos.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredEquipamentos, currentPage, itemsPerPage]);
-
-    // Função para determinar o status do item (SIMULAÇÃO)
     const getStatusLabel = (eq, index) => {
-        // SIMULAÇÃO: Se o índice for divisível por 10, está em manutenção (para fins de visualização)
         const isMaintenance = index % 10 === 0; 
         
         if (isMaintenance) return { label: 'Em Manutenção', color: 'yellow', icon: <FiLoader size={12} /> };
         if (!eq.sala || eq.sala.trim() === '') return { label: 'Sem Localização', color: 'orange', icon: <FiMapPin size={12} /> };
         return { label: 'Disponível', color: 'green', icon: <FiCheckCircle size={12} /> };
     }
-
-    // --- RENDERIZAÇÃO ---
-    
     if (pageLoading && countsLoading) return <div className="p-8 flex justify-center items-center h-[50vh]"><FiLoader className="text-4xl text-red-600 animate-spin"/></div>;
 
     return (
         <div className="p-4 sm:p-6 lg:p-8 font-sans">
             <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-5 sm:p-8 rounded-2xl shadow-subtle max-w-7xl mx-auto border border-gray-200/80">
-                
-                {/* Cabeçalho */}
                 <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200/80 pb-6 mb-6">
                     <div>
                         <h1 className="text-3xl font-extrabold text-red-600 drop-shadow-md">Gerenciar Patrimônios</h1>
@@ -415,8 +378,6 @@ export default function GerenciarPatrimonios() {
                         </motion.button>
                     </div>
                 </header>
-
-                {/* Cartões de Resumo (Report Cards) */}
                 <motion.div layout className="flex flex-wrap gap-4 mb-8 justify-center lg:justify-start">
                     <ReportCard 
                         title="Patrimônios Totais"
@@ -461,12 +422,7 @@ export default function GerenciarPatrimonios() {
                         <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                 </div>
-
-                {/* --- */}
-
-                {/* Tabela/Cards de Equipamentos */}
                 <div>
-                    {/* Tabela para Desktop */}
                     <motion.table initial="hidden" animate="show" variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } }}}
                         className="w-full text-left text-sm table-auto hidden md:table">
                         <thead className="bg-gray-50 text-gray-600 uppercase tracking-wider">
@@ -503,8 +459,6 @@ export default function GerenciarPatrimonios() {
                             </AnimatePresence>
                         </tbody>
                     </motion.table>
-                    
-                    {/* Cards para Mobile */}
                     <motion.div initial="hidden" animate="show" variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } }}}
                         className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
                         
@@ -548,17 +502,11 @@ export default function GerenciarPatrimonios() {
                         </div>
                     )}
                 </div>
-
-                {/* --- */}
-
-                {/* CONTROLES DE PAGINAÇÃO */}
                 <Paginacao
                     currentPage={currentPage}
                     totalPages={totalPages}
                     onPageChange={setCurrentPage}
                 />
-                {/* FIM CONTROLES DE PAGINAÇÃO */}
-
             </motion.div>
 
             <AnimatePresence>

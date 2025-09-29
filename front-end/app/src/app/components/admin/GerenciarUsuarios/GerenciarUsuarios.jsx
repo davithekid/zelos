@@ -46,8 +46,6 @@ const FuncaoBadge = ({ funcao }) => {
 };
 
 const Spinner = () => <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />;
-
-// NOVO COMPONENTE: Modal de Visualização de Técnico
 const TechnicianInfoModal = ({ user, onClose }) => {
     if (!user) return null;
 
@@ -230,7 +228,6 @@ export default function GerenciarUsuarios() {
     const [countsLoading, setCountsLoading] = useState(true);
     const [editingUser, setEditingUser] = useState(null);
     const [userToToggle, setUserToToggle] = useState(null);
-    // NOVO ESTADO: Usuário para visualização
     const [viewingUser, setViewingUser] = useState(null); 
     
     const [filtroStatus, setFiltroStatus] = useState('');
@@ -298,7 +295,6 @@ export default function GerenciarUsuarios() {
         if (!editingUser) return;
         setActionLoading(true);
         try {
-            // Apenas envia função e especialidade, mantendo nome e email inalterados no backend.
             await api.patch(`/usuarios/${editingUser.id}`, {
                 funcao: editingUser.funcao,
                 especialidade: editingUser.especialidade || null
@@ -333,7 +329,6 @@ export default function GerenciarUsuarios() {
         }
     };
 
-    // NOVA FUNÇÃO: Abre o modal de visualização apenas para técnicos
     const handleViewTechnician = (usuario) => {
         if (usuario.funcao === 'tecnico') {
             setViewingUser(usuario);
@@ -370,9 +365,7 @@ export default function GerenciarUsuarios() {
     return (
         <div className="p-4 sm:p-6 lg:p-8 font-sans">
             <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto">
-                {/* Cards de Resumo (sem alteração) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {/* ... ReportCards (sem alteração) ... */}
                     <ReportCard 
                         title="Todos os Usuários"
                         count={counts.todos}
@@ -453,7 +446,6 @@ export default function GerenciarUsuarios() {
                             </div>
                         </header>
 
-                        {/* Filtros e Pesquisa (sem alteração) */}
                         <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
                             <div className="relative w-full md:flex-1 group">
                                 <FiSearch className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 group-focus-within:text-red-600 transition-colors" />
@@ -528,7 +520,6 @@ export default function GerenciarUsuarios() {
                                             variants={itemVariants} 
                                             key={`${usuario.id}-${index}`} 
                                             className={`border-b border-gray-200/80 transition-colors ${usuario.funcao === 'tecnico' ? 'hover:bg-blue-50/50 cursor-pointer' : 'hover:bg-zinc-50/50'}`}
-                                            // CLIQUE NA LINHA PARA VISUALIZAR O TÉCNICO
                                             onClick={() => handleViewTechnician(usuario)}
                                         >
                                             <td className="px-4 py-4 font-medium text-gray-800">{usuario.nome}</td>
@@ -542,7 +533,6 @@ export default function GerenciarUsuarios() {
                                             <td className="px-4 py-4"><StatusBadge status={usuario.status} /></td>
                                             <td className="px-4 py-4">
                                                 <div className="flex gap-2 justify-end">
-                                                    {/* BOTÃO DE VISUALIZAÇÃO SE FOR TÉCNICO */}
                                                     {usuario.funcao === 'tecnico' && (
                                                         <motion.button 
                                                             whileHover={{ scale: 1.1 }} 
@@ -601,16 +591,10 @@ export default function GerenciarUsuarios() {
                         )}
                     </motion.div>
                 </motion.div>
-
-                {/* MODAIS: EDITAR, TOGGLE E VISUALIZAÇÃO */}
                 <AnimatePresence>
                     {(editingUser || userToToggle || viewingUser) && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-                            
-                            {/* MODAL DE VISUALIZAÇÃO DE TÉCNICO */}
                             {viewingUser && <TechnicianInfoModal user={viewingUser} onClose={() => setViewingUser(null)} />}
-
-                            {/* MODAL DE EDIÇÃO */}
                             {editingUser && (
                                 <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
                                     <div className="p-6">
@@ -621,22 +605,18 @@ export default function GerenciarUsuarios() {
                                             </button>
                                         </div>
                                         <div className="space-y-4">
-                                            {/* CAMPO NOME - APENAS VISUALIZAÇÃO */}
                                             <div>
                                                 <label className="text-sm font-medium text-gray-600 mb-1 block">Nome</label>
                                                 <div className="w-full bg-gray-100 text-gray-700 p-3 rounded-lg border border-gray-200 font-semibold">
                                                     {editingUser.nome}
                                                 </div>
                                             </div>
-                                            {/* CAMPO EMAIL - APENAS VISUALIZAÇÃO */}
                                             <div>
                                                 <label className="text-sm font-medium text-gray-600 mb-1 block">Email</label>
                                                 <div className="w-full bg-gray-100 text-gray-700 p-3 rounded-lg border border-gray-200 font-semibold">
                                                     {editingUser.email}
                                                 </div>
                                             </div>
-                                            
-                                            {/* CAMPO FUNÇÃO - EDITÁVEL */}
                                             <div>
                                                 <label className="text-sm font-medium text-gray-600 mb-1 block">Função</label>
                                                 <select 
@@ -649,8 +629,6 @@ export default function GerenciarUsuarios() {
                                                     <option value="usuario">Usuário</option>
                                                 </select>
                                             </div>
-                                            
-                                            {/* CAMPO ESPECIALIDADE - EDITÁVEL */}
                                             <div>
                                                 <label className="text-sm font-medium text-gray-600 mb-1 block">Especialidade</label>
                                                 <input 
@@ -687,8 +665,6 @@ export default function GerenciarUsuarios() {
                                     </div>
                                 </motion.div>
                             )}
-
-                            {/* MODAL DE CONFIRMAÇÃO DE STATUS */}
                             {userToToggle && (
                                 <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
                                     <div className="p-6">
@@ -737,7 +713,6 @@ export default function GerenciarUsuarios() {
                     )}
                 </AnimatePresence>
             </motion.div>
-            {/* Classes Tailwind para PurgeCSS */}
             <span className="hidden bg-red-100 text-red-600 bg-yellow-100 text-yellow-600 bg-green-100 text-green-600 bg-blue-100 text-blue-600 bg-orange-100 text-orange-600 bg-purple-100 text-purple-600"></span>
         </div>
     );

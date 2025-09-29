@@ -11,12 +11,10 @@ import {
 import api from '../../../lib/api';
 import { toast } from 'sonner';
 
-// Constantes para configuração
-const ITEMS_PER_PAGE = 15; // Alterado para 15 chamados por página
+const ITEMS_PER_PAGE = 15; 
 const DEBOUNCE_DELAY = 300;
 const MAX_CHAMADOS_VISIVEIS = 3;
 
-// Componentes reutilizáveis (sem alterações significativas, foco na lógica do painel)
 const StatCard = ({ icon, label, value, loading = false }) => (
     <div className="bg-white p-5 rounded-xl border border-slate-200/80 shadow-sm flex items-center gap-5">
         <div className="bg-gradient-to-br from-slate-100 to-slate-200 p-3 rounded-lg">
@@ -70,7 +68,6 @@ const ChamadoPendenteCard = ({ chamado, tecnicos, onAtribuir, loading }) => (
     </motion.div>
 );
 
-// Componente de Chamado individual
 const ChamadoItem = ({ chamado, onDesatribuir, loading }) => (
     <motion.div
         layout
@@ -100,7 +97,6 @@ const ChamadoItem = ({ chamado, onDesatribuir, loading }) => (
     </motion.div>
 );
 
-// Componente de Técnico com dropdown - CORRIGIDO
 const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const getInitials = (name = "") => {
@@ -146,14 +142,12 @@ const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
 
             <div className="space-y-2">
                 {loading ? (
-                    // Loading sem AnimatePresence
                     [...Array(2)].map((_, index) => (
                         <div key={index} className="bg-slate-100 p-2.5 rounded-md animate-pulse">
                             <div className="h-4 bg-slate-200 rounded"></div>
                         </div>
                     ))
                 ) : chamados.length > 0 ? (
-                    // Conteúdo real com AnimatePresence CORRETO
                     <AnimatePresence>
                         {chamadosVisiveis.map(chamado => (
                             <ChamadoItem
@@ -197,7 +191,6 @@ const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
                         )}
                     </AnimatePresence>
                 ) : (
-                    // Empty state sem AnimatePresence
                     <div className="text-center py-3 text-slate-400">
                         <FiInbox className="mx-auto text-lg mb-1" />
                         <p className="text-xs">Nenhum chamado atribuído</p>
@@ -208,7 +201,6 @@ const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
     );
 };
 
-// Componente de Paginação
 const Pagination = ({ currentPage, totalPages, onPageChange, className = '' }) => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -305,7 +297,6 @@ const LoadingSkeleton = () => (
     </div>
 );
 
-// Skeleton para cards de técnicos
 const TecnicoCardSkeleton = () => (
     <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm animate-pulse">
         <div className="flex items-center gap-4 mb-4">
@@ -327,7 +318,7 @@ const TecnicoCardSkeleton = () => (
 
 export default function PainelAtribuicaoAdmin() {
     const [tecnicos, setTecnicos] = useState([]);
-    const [chamados, setChamados] = useState([]); // 'chamados' agora conterá APENAS os itens da página atual
+    const [chamados, setChamados] = useState([]); 
     const [pageLoading, setPageLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -338,20 +329,16 @@ export default function PainelAtribuicaoAdmin() {
         totalItems: 0
     });
 
-    // Debounce para busca
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchTerm);
-            setPagination(prev => ({ ...prev, currentPage: 1 })); // Resetar para a primeira página ao mudar a busca
+            setPagination(prev => ({ ...prev, currentPage: 1 })); 
         }, DEBOUNCE_DELAY);
 
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    // Buscar dados com paginação
     const fetchData = useCallback(async (page = 1, search = '') => {
-        // Apenas mostre o skeleton de página cheia se não houver NENHUM chamado carregado
-        // Isso previne um flash de loading se você estiver apenas trocando de página
         if (!chamados.length && page === 1 && !search) { // Ajuste para só mostrar no carregamento inicial ou busca vazia
             setPageLoading(true);
         }
@@ -360,15 +347,13 @@ export default function PainelAtribuicaoAdmin() {
             const params = new URLSearchParams({
                 page: page.toString(),
                 limit: ITEMS_PER_PAGE.toString(),
-                ...(search && { search }) // Envia o termo de busca para o backend
+                ...(search && { search }) 
             });
 
             const [chamadosRes, tecnicosRes] = await Promise.all([
                 api.get(`/chamados?${params}`),
                 api.get('/usuarios/tecnicos')
             ]);
-
-            // Chamados Res pode ser um array direto ou um objeto com data e pagination
             const responseData = chamadosRes.data.data || chamadosRes.data;
             const mappedChamados = Array.isArray(responseData)
                 ? responseData.map(c => ({
@@ -383,19 +368,14 @@ export default function PainelAtribuicaoAdmin() {
             setChamados(mappedChamados);
             setTecnicos(tecnicosRes.data);
 
-            // Atualizar paginação: PRIORIZE a informação de paginação do backend
             if (chamadosRes.data.pagination) {
                 setPagination(chamadosRes.data.pagination);
             } else {
-                // FALLBACK: Se o backend não retornar 'pagination', tenta calcular
-                // IMPORTANTE: Este cálculo só é preciso se o backend *sempre* retornar
-                // TODOS os chamados para a busca/filtros, o que não é ideal para desempenho.
-                // O ideal é que o backend SEMPRE envie as informações de paginação.
                 const totalItems = Array.isArray(chamadosRes.data) ? chamadosRes.data.length : 0;
                 const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
                 setPagination({
                     currentPage: page,
-                    totalPages: totalPages === 0 ? 1 : totalPages, // Garante pelo menos 1 página
+                    totalPages: totalPages === 0 ? 1 : totalPages, 
                     totalItems
                 });
                 console.warn("Backend não forneceu objeto de paginação. Calculando no frontend. Considere ajustar o backend.");
@@ -403,16 +383,15 @@ export default function PainelAtribuicaoAdmin() {
         } catch (error) {
             console.error("Erro ao buscar dados:", error);
             toast.error("Erro ao carregar dados. Tente novamente.");
-            setChamados([]); // Limpa chamados em caso de erro
+            setChamados([]); 
         } finally {
             setPageLoading(false);
         }
-    }, [chamados.length]); // Dependência chamados.length para decidir se mostra o skeleton inicial
+    }, [chamados.length]); 
 
     useEffect(() => {
-        // Dispara fetchData quando a página ou o termo de busca (debounced) muda
         fetchData(pagination.currentPage, debouncedSearch);
-    }, [pagination.currentPage, debouncedSearch, fetchData]); // Adicionado fetchData nas dependências do useEffect
+    }, [pagination.currentPage, debouncedSearch, fetchData]);
 
     const handleAtribuir = async (chamadoId, tecnicoId) => {
         if (!tecnicoId) return;
@@ -420,20 +399,14 @@ export default function PainelAtribuicaoAdmin() {
         setActionLoading(chamadoId);
         try {
             await api.patch(`/chamados/${chamadoId}/atribuir`, { tecnico_id: tecnicoId });
-
-            // Atualização otimista: remover o chamado da lista atual
             setChamados(prev => prev.filter(c => c.id !== chamadoId));
 
             const tecnicoNome = tecnicos.find(t => t.id === tecnicoId)?.nome;
             toast.success(`Atribuído a ${tecnicoNome || 'um técnico'}!`);
-
-            // Recarregar dados para garantir consistência e recalcular paginação/contagens
-            // Após uma ação, é geralmente bom recarregar a página atual
             await fetchData(pagination.currentPage, debouncedSearch);
         } catch (error) {
             console.error("Erro ao atribuir chamado:", error.response?.data || error);
             toast.error("Falha ao atribuir chamado.");
-            // Em caso de erro, recarrega para reverter qualquer estado otimista incorreto
             await fetchData(pagination.currentPage, debouncedSearch);
         } finally {
             setActionLoading(null);
@@ -444,44 +417,33 @@ export default function PainelAtribuicaoAdmin() {
         setActionLoading(chamadoId);
         try {
             await api.patch(`/chamados/${chamadoId}/atribuir`, { tecnico_id: null });
-
-            // Atualização otimista: atualizar o status do chamado (se ele permanecer na mesma página)
-            // Ou, se o chamado desatribuído deve voltar para a "fila de espera" e a fila está paginada,
-            // um reload é mais seguro.
             setChamados(prev => prev.map(c =>
                 c.id === chamadoId ? { ...c, tecnico: null } : c
             ));
 
             toast.success('Chamado retornado para a fila.');
-            await fetchData(pagination.currentPage, debouncedSearch); // Recarrega para refletir a mudança
+            await fetchData(pagination.currentPage, debouncedSearch); 
         } catch (error) {
             console.error("Erro ao desatribuir chamado:", error);
             toast.error("Falha ao desatribuir chamado.");
-            await fetchData(pagination.currentPage, debouncedSearch); // Em caso de erro, recarrega
+            await fetchData(pagination.currentPage, debouncedSearch); 
         } finally {
             setActionLoading(null);
         }
     };
 
     const handlePageChange = (newPage) => {
-        // Não permitir mudar para páginas inválidas
         if (newPage >= 1 && newPage <= pagination.totalPages) {
             setPagination(prev => ({ ...prev, currentPage: newPage }));
         }
     };
-
-    // `chamados` agora já é a lista paginada do backend para a página atual
     const { pendentes, chamadosAtribuiveis } = useMemo(() => {
         const pendentes = chamados.filter(c => !c.tecnico && c.status === 'aberto');
         const atribuidosAtivos = chamados.filter(c => c.tecnico && (c.status === 'aberto' || c.status === 'em andamento'));
         return { pendentes, chamadosAtribuiveis: atribuidosAtivos };
-    }, [chamados]); // Depende apenas dos chamados da página atual
+    }, [chamados]); 
 
     const filteredPendentes = useMemo(() => {
-        // Se a busca já foi enviada para o backend, 'pendentes' já deve refletir a busca.
-        // Este filtro local serve para refinar ainda mais ou para uma busca "instantânea" na página atual.
-        // Se a busca no backend já é perfeita, este filtro pode não ser estritamente necessário,
-        // mas não causa problemas.
         if (!debouncedSearch) return pendentes;
 
         return pendentes.filter(chamado =>
@@ -489,9 +451,6 @@ export default function PainelAtribuicaoAdmin() {
             (chamado.numero_patrimonio && chamado.numero_patrimonio.toLowerCase().includes(debouncedSearch.toLowerCase()))
         );
     }, [pendentes, debouncedSearch]);
-
-
-    // Condição de loading para o painel completo
     if (pageLoading && !chamados.length) {
         return (
             <div className="flex flex-col justify-center items-center h-screen text-slate-500">
@@ -527,29 +486,18 @@ export default function PainelAtribuicaoAdmin() {
                         <StatCard
                             icon={<FiTrendingUp className="text-sky-600"/>}
                             label="Total de Chamados Ativos"
-                            // A contagem aqui agora reflete apenas os chamados DA PÁGINA ATUAL,
-                            // o que pode ser misleading. Para um TOTAL GERAL, o backend precisa
-                            // enviar um 'totalItems' separado, ou você soma o 'totalItems' da paginação
-                            // dos chamados pendentes e dos atribuídos (se eles tiverem suas próprias paginações).
-                            // Para ser mais preciso, aqui deveria ser pagination.totalItems
-                            value={pagination.totalItems} // Usar totalItems do objeto de paginação
+                            value={pagination.totalItems} 
                             loading={pageLoading}
                         />
                         <StatCard
                             icon={<FiInbox className="text-red-600"/>}
                             label="Pendentes na Fila"
-                            // A contagem de pendentes agora é apenas da PÁGINA ATUAL de chamados carregados.
-                            // Se você quer o total real de pendentes em todo o sistema,
-                            // o backend precisaria fornecer um stat separado para isso.
                             value={pendentes.length}
                             loading={pageLoading}
                         />
                         <StatCard
                             icon={<FiUsers className="text-green-600"/>}
                             label="Em Atendimento"
-                            // Similarmente, esta é a contagem na PÁGINA ATUAL.
-                            // Para um total geral de chamados em atendimento, o backend precisaria
-                            // fornecer um stat separado.
                             value={chamadosAtribuiveis.length}
                             loading={pageLoading}
                         />
@@ -562,7 +510,6 @@ export default function PainelAtribuicaoAdmin() {
                             <h2 className="text-xl font-bold text-slate-800">Fila de Espera</h2>
                                                      {filteredPendentes.length > 0 && (
                                 <span className="text-sm text-slate-500">
-                                    {/* `filteredPendentes.length` mostra a quantidade de chamados na página atual */}
                                     {filteredPendentes.length} chamado(s) encontrado(s)
                                 </span>
                             )}
@@ -599,8 +546,6 @@ export default function PainelAtribuicaoAdmin() {
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
-
-                                {/* A paginação só aparece se houver mais de uma página */}
                                 {pagination.totalPages > 1 && (
                                     <Pagination
                                         currentPage={pagination.currentPage}
@@ -617,7 +562,6 @@ export default function PainelAtribuicaoAdmin() {
                         <div className="flex justify-between items-center">
                             <h2 className="text-xl font-bold text-slate-800">Equipe Técnica</h2>
                             <span className="text-sm text-slate-500">
-                                {/* Esta contagem de técnicos deve ser do total de técnicos, não afetado pela paginação de chamados */}
                                 {tecnicos.length} técnico(s)
                             </span>
                         </div>
@@ -631,14 +575,9 @@ export default function PainelAtribuicaoAdmin() {
                                 <TecnicoCard
                                     key={tecnico.id}
                                     tecnico={tecnico}
-                                    // Aqui, 'chamadosAtribuiveis' já são os chamados da página atual.
-                                    // Se um técnico tiver mais chamados atribuídos que não estão na página atual, eles não aparecerão.
-                                    // Para mostrar TODOS os chamados atribuídos a um técnico, independentemente da paginação da fila,
-                                    // você precisaria de uma lógica de fetch separada para os chamados de cada técnico,
-                                    // ou o backend precisaria enviar essa informação consolidada.
                                     chamados={chamadosAtribuiveis.filter(c => c.tecnico === tecnico.nome)}
                                     onDesatribuir={handleDesatribuir}
-                                    loading={actionLoading !== null} // Passa loading genérico para ações de desatribuição
+                                    loading={actionLoading !== null}
                                 />
                             ))
                         )}
