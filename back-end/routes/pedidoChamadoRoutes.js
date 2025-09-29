@@ -1,5 +1,3 @@
-// /routes/pedidoChamadoRoutes.js CORRIGIDO
-
 import express from "express";
 import AuthMiddleware from "../middlewares/AuthMiddleware.js";
 import Autorizar from "../middlewares/Autorizar.js";

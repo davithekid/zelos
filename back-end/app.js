@@ -18,7 +18,6 @@ import apontamentoRoutes from './routes/apontamentoRoutes.js';
 import relatorioRoutes from './routes/relatorioRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import equipamentoRoutes from './routes/equipamentoRoutes.js';
-import mensagemRoutes from './routes/mensagemRoutes.js';
 import notificacaoRoutes from './routes/notificacaoRoutes.js';
 import pedidoChamadoRoutes from './routes/pedidoChamadoRoutes.js'
 import pedidosFechamentosRoutes from './routes/pedidoFechamentosRoutes.js'
@@ -71,7 +70,6 @@ app.use('/apontamentos', apontamentoRoutes);
 app.use('/relatorios', relatorioRoutes);
 app.use('/auth', authRoutes);
 app.use('/equipamentos', equipamentoRoutes);
-app.use('/mensagens', mensagemRoutes);
 app.use('/notificacao', notificacaoRoutes);
 app.use('/pedidos-chamado', pedidoChamadoRoutes);
 app.use('/pedidos-fechamento', pedidosFechamentosRoutes);

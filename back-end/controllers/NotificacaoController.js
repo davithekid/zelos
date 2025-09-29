@@ -2,7 +2,6 @@ import Notificacao from '../entities/Notificacao.js';
 
 class NotificacaoController {
 
-    // Listar notificações do usuário logado
     static async listar(req, res) {
         try {
             const usuario_id = req.user.id; 
@@ -17,7 +16,6 @@ class NotificacaoController {
         }
     }
 
-    // Buscar notificação por ID (não muito usado no front-end, mas bom ter)
     static async buscarPorId(req, res) {
         try {
             const { id } = req.params;
@@ -86,7 +84,6 @@ class NotificacaoController {
         }
     }
 
-    // Limpar TODAS as notificações do usuário
     static async limparTodas(req, res) {
         try {
             const usuario_id = req.user.id;
