@@ -105,7 +105,7 @@ const ApontamentoCard = ({ apontamento }) => {
                     <FiHash size={14} className="text-red-500" /> Chamado #{apontamento.chamado_id}
                 </span>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${apontamento.fim ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                    {apontamento.fim ? 'Finalizado' : 'Em Curso'}
+                    {apontamento.fim ? 'Concluído' : 'Em Andamento'}
                 </span>
             </div>
             <p className="text-gray-800 text-sm italic whitespace-pre-wrap">
@@ -158,9 +158,9 @@ export default function Apontamentos() {
 
     const filteredApontamentos = useMemo(() => {
         let data = apontamentos;
-        if (filterStatus === 'finalizado') {
+        if (filterStatus === 'concluido') {
             data = data.filter(a => a.fim);
-        } else if (filterStatus === 'andamento') {
+        } else if (filterStatus === 'em andamento') {
             data = data.filter(a => !a.fim);
         }
         if (search.trim()) {
@@ -244,8 +244,8 @@ export default function Apontamentos() {
                                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                             >
                                 <option value="all">Todos</option>
-                                <option value="finalizado">Finalizados</option>
-                                <option value="andamento">Em Andamento</option>
+                                <option value="concluido">Concluídos</option>
+                                <option value="em andamento">Em Andamento</option>
                             </select>
                         </div>
                     </div>
