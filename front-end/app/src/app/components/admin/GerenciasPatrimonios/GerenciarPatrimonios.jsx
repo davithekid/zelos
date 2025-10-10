@@ -5,6 +5,35 @@ import { FiFilter, FiEdit, FiX, FiPlus, FiSearch, FiAlertTriangle, FiCheckCircle
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import api from '../../../lib/api'; 
+
+
+const STATUS_OPTIONS = [ 
+    { value: 'disponivel', label: 'Disponível' },
+    { value: 'emManutencao', label: 'Em Manutenção' },
+];
+
+const getStatusDetails = (equipamento, index) => {
+    const STATUS_MAP = {
+        disponivel: { label: 'Disponível', color: 'green', icon: <FiCheckCircle size={12} />, statusKey: 'disponivel' },
+        emManutencao: { label: 'Em Manutenção', color: 'yellow', icon: <FiLoader size={12} />, statusKey: 'emManutencao' },
+        semLocalizacao: { label: 'Sem Localização', color: 'orange', icon: <FiMapPin size={12} />, statusKey: 'semLocalizacao' },
+    };
+
+    if (equipamento.status && STATUS_MAP[equipamento.status]) {
+        return STATUS_MAP[equipamento.status];
+    }
+    
+    if (!equipamento.sala || equipamento.sala.trim() === '') {
+        return STATUS_MAP.semLocalizacao; 
+    }
+
+    const isMaintenance = index % 10 === 0; 
+    if (isMaintenance) return STATUS_MAP.emManutencao;
+    
+    return STATUS_MAP.disponivel;
+};
+
+
 const capitalize = (s = '') => {
     if (!s) return '';
     const str = s.replace(/_/g, ' ');
@@ -161,11 +190,12 @@ function PatrimonioModal({ equipamento, onClose, onSave, isLoading }) {
     const [patrimonio, setPatrimonio] = useState(equipamento?.patrimonio || '');
     const [sala, setSala] = useState(equipamento?.sala || '');
     const [nomeEquipamento, setNomeEquipamento] = useState(equipamento?.equipamento || '');
+    const [status, setStatus] = useState(equipamento?.status || ''); 
     const isEditing = !!equipamento;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave({ patrimonio, sala, equipamento: nomeEquipamento });
+        onSave({ patrimonio, sala, equipamento: nomeEquipamento, status }); 
     };
 
     return (
@@ -200,6 +230,27 @@ function PatrimonioModal({ equipamento, onClose, onSave, isLoading }) {
                                     placeholder="Ex: Sala 101, Laboratório 3"
                                     className="w-full bg-zinc-100 border-2 border-transparent p-3 rounded-lg focus:bg-white focus:border-red-500 transition-all outline-none" />
                             </div>
+                            
+                            {isEditing && (
+                                <div>
+                                    <label className="text-sm font-medium text-gray-600 mb-1 block">Status</label>
+                                    <div className="relative">
+                                        <select 
+                                            value={status} 
+                                            onChange={(e) => setStatus(e.target.value)}
+                                            className="w-full appearance-none bg-zinc-100 border-2 border-transparent p-3 pr-10 rounded-lg focus:bg-white focus:border-red-500 transition-all outline-none text-gray-700 font-medium"
+                                        >
+                                            <option value="">(Manter Status Atual)</option>
+                                            {STATUS_OPTIONS.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                        <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                                    </div>
+                                    <p className="mt-1 text-xs text-gray-500">Isto define o status manual do equipamento. Se vazio, o status é derivado da localização ou simulação.</p>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                     <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
@@ -215,6 +266,7 @@ function PatrimonioModal({ equipamento, onClose, onSave, isLoading }) {
     );
 }
 
+
 export default function GerenciarPatrimonios() {
     const [equipamentos, setEquipamentos] = useState([]);
     const [pesquisa, setPesquisa] = useState('');
@@ -222,39 +274,44 @@ export default function GerenciarPatrimonios() {
     const [modal, setModal] = useState({ formOpen: false, deleteOpen: false });
     const [selectedEquipamento, setSelectedEquipamento] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
-    const [counts, setCounts] = useState({ todos: 0, emManutencao: 0, semLocalizacao: 0 });
+    const [counts, setCounts] = useState({ todos: 0, emManutencao: 0, semLocalizacao: 0, disponivel: 0 }); 
     const [countsLoading, setCountsLoading] = useState(true);
     const [filtroStatus, setFiltroStatus] = useState(''); 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10); 
-    const fetchCounts = useCallback(async (allEquipamentos = null) => {
-        setCountsLoading(true);
-        try {
-            const data = allEquipamentos || (await api.get('/equipamentos')).data || [];
-            const emManutencaoCount = Math.floor(data.length * 0.1); 
-            const semLocalizacaoCount = data.filter(eq => !eq.sala || eq.sala.trim() === '').length;
+    
+    const indexedEquipamentos = useMemo(() => {
+        return equipamentos.map((eq, index) => {
+            const details = getStatusDetails(eq, index);
+            return {
+                ...eq,
+                _index: index, 
+                _statusKey: details.statusKey, 
+                _statusLabel: details.label,
+                _statusColor: details.color,
+                _statusIcon: details.icon,
+            };
+        });
+    }, [equipamentos]);
 
-            setCounts({
-                todos: data.length,
-                emManutencao: emManutencaoCount,
-                semLocalizacao: semLocalizacaoCount,
-            });
-            if (!allEquipamentos) setEquipamentos(data);
+    const calculateCounts = useCallback((data) => {
+        const emManutencaoCount = data.filter(eq => eq._statusKey === 'emManutencao').length;
+        const semLocalizacaoCount = data.filter(eq => eq._statusKey === 'semLocalizacao').length;
+        const disponivelCount = data.filter(eq => eq._statusKey === 'disponivel').length;
 
-        } catch (error) {
-            console.error("Erro ao buscar contagens:", error);
-            if (countsLoading) toast.error("Falha ao carregar dados de resumo."); 
-        } finally {
-            setCountsLoading(false);
-        }
-    }, [countsLoading]);
+        setCounts({
+            todos: data.length,
+            emManutencao: emManutencaoCount,
+            semLocalizacao: semLocalizacaoCount,
+            disponivel: disponivelCount,
+        });
+    }, []);
 
     const fetchData = async () => {
         setPageLoading(true);
         try {
             const response = await api.get('/equipamentos');
-            setEquipamentos(response.data);
-            await fetchCounts(response.data); 
+            setEquipamentos(response.data); 
             setCurrentPage(1); 
         } catch (error) {
             toast.error("Erro ao carregar equipamentos.");
@@ -263,6 +320,12 @@ export default function GerenciarPatrimonios() {
         }
     };
     
+    useEffect(() => {
+        calculateCounts(indexedEquipamentos);
+        setCountsLoading(false);
+    }, [indexedEquipamentos, calculateCounts]);
+
+
     const handleRefresh = () => {
         fetchData();
         toast.info("A atualizar dados...");
@@ -280,7 +343,12 @@ export default function GerenciarPatrimonios() {
         setActionLoading(true);
         try {
             if (selectedEquipamento) {
-                await api.patch(`/equipamentos/${selectedEquipamento.patrimonio}`, data);
+                const dataToSend = { ...data };
+                if (dataToSend.status === "") {
+                    delete dataToSend.status;
+                }
+                
+                await api.patch(`/equipamentos/${selectedEquipamento.patrimonio}`, dataToSend);
                 toast.success("Equipamento atualizado com sucesso!");
             } else {
                 await api.post('/equipamentos', data);
@@ -324,38 +392,26 @@ export default function GerenciarPatrimonios() {
     const filteredEquipamentos = useMemo(() => {
         const p = pesquisa.toLowerCase();
         
-        const isEmManutencao = (index) => index % 10 === 0;
-
-        return equipamentos.filter((eq, index) => {
+        return indexedEquipamentos.filter((eq) => {
             const matchesSearch = (eq.patrimonio || '').toLowerCase().includes(p) ||
-                                  (eq.sala || '').toLowerCase().includes(p) ||
-                                  (eq.equipamento || '').toLowerCase().includes(p);
+                                 (eq.sala || '').toLowerCase().includes(p) ||
+                                 (eq.equipamento || '').toLowerCase().includes(p);
             
             let matchesStatus = true;
-            if (filtroStatus === 'emManutencao') {
-                matchesStatus = isEmManutencao(index); 
-            } else if (filtroStatus === 'semLocalizacao') {
-                matchesStatus = !eq.sala || eq.sala.trim() === '';
-            } else if (filtroStatus === 'disponivel') {
-                matchesStatus = !isEmManutencao(index) && (eq.sala && eq.sala.trim() !== '');
+            if (filtroStatus) {
+                matchesStatus = eq._statusKey === filtroStatus;
             }
 
             return matchesSearch && matchesStatus;
         });
-    }, [equipamentos, pesquisa, filtroStatus]);
+    }, [indexedEquipamentos, pesquisa, filtroStatus]);
 
     const totalPages = Math.ceil(filteredEquipamentos.length / itemsPerPage);
     const paginatedEquipamentos = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         return filteredEquipamentos.slice(startIndex, startIndex + itemsPerPage);
     }, [filteredEquipamentos, currentPage, itemsPerPage]);
-    const getStatusLabel = (eq, index) => {
-        const isMaintenance = index % 10 === 0; 
-        
-        if (isMaintenance) return { label: 'Em Manutenção', color: 'yellow', icon: <FiLoader size={12} /> };
-        if (!eq.sala || eq.sala.trim() === '') return { label: 'Sem Localização', color: 'orange', icon: <FiMapPin size={12} /> };
-        return { label: 'Disponível', color: 'green', icon: <FiCheckCircle size={12} /> };
-    }
+
     if (pageLoading && countsLoading) return <div className="p-8 flex justify-center items-center h-[50vh]"><FiLoader className="text-4xl text-red-600 animate-spin"/></div>;
 
     return (
@@ -378,6 +434,7 @@ export default function GerenciarPatrimonios() {
                         </motion.button>
                     </div>
                 </header>
+                
                 <motion.div layout className="flex flex-wrap gap-4 mb-8 justify-center lg:justify-start">
                     <ReportCard 
                         title="Patrimônios Totais"
@@ -389,12 +446,30 @@ export default function GerenciarPatrimonios() {
                         isLoading={countsLoading}
                     />
                     <ReportCard 
+                        title="Disponível/Localizado"
+                        count={counts.disponivel}
+                        icon={<FiCheckCircle size={24} />}
+                        color="green"
+                        isActive={filtroStatus === 'disponivel'}
+                        onClick={() => setFiltroStatus('disponivel')}
+                        isLoading={countsLoading}
+                    />
+                    <ReportCard 
                         title="Em Manutenção"
                         count={counts.emManutencao}
                         icon={<FiLoader size={24} />}
                         color="yellow"
                         isActive={filtroStatus === 'emManutencao'}
                         onClick={() => setFiltroStatus('emManutencao')}
+                        isLoading={countsLoading}
+                    />
+                    <ReportCard 
+                        title="Sem Localização"
+                        count={counts.semLocalizacao}
+                        icon={<FiMapPin size={24} />}
+                        color="orange"
+                        isActive={filtroStatus === 'semLocalizacao'}
+                        onClick={() => setFiltroStatus('semLocalizacao')}
                         isLoading={countsLoading}
                     />
                 </motion.div>
@@ -417,7 +492,7 @@ export default function GerenciarPatrimonios() {
                             <option value="">Status (Todos)</option>
                             <option value="disponivel">Disponível/Localizado</option>
                             <option value="emManutencao">Em Manutenção</option>
-                            <option value="semLocalizacao">Sem Localização</option>
+                            <option value="semLocalizacao">Sem Localização (Sala Vazia)</option>
                         </select>
                         <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
@@ -436,17 +511,16 @@ export default function GerenciarPatrimonios() {
                         </thead>
                         <tbody>
                             <AnimatePresence>
-                                {paginatedEquipamentos.map((eq, index) => {
-                                    const status = getStatusLabel(eq, index);
+                                {paginatedEquipamentos.map((eq) => {
                                     return (
                                         <motion.tr variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-                                            key={`${eq.patrimonio}-${index}`} className="border-t hover:bg-zinc-50/50 transition-colors">
+                                            key={eq.patrimonio} className="border-t hover:bg-zinc-50/50 transition-colors">
                                             <td className="px-4 py-4 font-mono font-semibold text-gray-700">{eq.patrimonio}</td>
                                             <td className="px-4 py-4 text-gray-800">{eq.equipamento || '-'}</td>
                                             <td className="px-4 py-4 text-gray-600">{eq.sala || <span className="text-orange-500 font-medium">Não Informada</span>}</td>
                                             <td className="px-4 py-4">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-${status.color}-100 text-${status.color}-800`}>
-                                                    {status.icon} {status.label}
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-${eq._statusColor}-100 text-${eq._statusColor}-800`}>
+                                                    {eq._statusIcon} {eq._statusLabel}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-4 text-right">
@@ -459,34 +533,30 @@ export default function GerenciarPatrimonios() {
                             </AnimatePresence>
                         </tbody>
                     </motion.table>
+                    
                     <motion.div initial="hidden" animate="show" variants={{ hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } }}}
                         className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
                         
                         <AnimatePresence>
-                            {paginatedEquipamentos.map((eq, index) => {
-                                const status = getStatusLabel(eq, index);
+                            {paginatedEquipamentos.map((eq) => {
                                 return (
                                     <motion.div variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-                                        key={`${eq.patrimonio}-${index}`} 
+                                        key={eq.patrimonio} 
                                         className="bg-white border rounded-lg p-4 space-y-3 shadow-sm"
                                     >
                                         <div className="flex justify-between items-start">
                                             <span className="font-bold text-gray-800 font-mono pr-2">{eq.patrimonio}</span>
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-${status.color}-100 text-${status.color}-800`}>
-                                                {status.icon} {status.label}
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-${eq._statusColor}-100 text-${eq._statusColor}-800`}>
+                                                {eq._statusIcon} {eq._statusLabel}
                                             </span>
                                         </div>
                                         <div className="text-sm text-gray-500 border-t pt-3 space-y-1">
                                             <p><strong>Equipamento:</strong> {eq.equipamento || 'Não informado'}</p>
-                                            <p><strong>Sala/Local:</strong> {eq.sala || <span className="text-orange-500">Não informada</span>}</p>
+                                            <p><strong>Local:</strong> {eq.sala || <span className="text-orange-500 font-medium">Não Informada</span>}</p>
                                         </div>
-                                        <div className="flex gap-4 pt-3 border-t mt-3">
-                                            <button onClick={() => openFormModal(eq)} className="flex items-center gap-2 text-blue-600 font-medium text-sm">
-                                                <FiEdit size={16} /> Editar
-                                            </button>
-                                            <button onClick={() => openDeleteModal(eq)} className="flex items-center gap-2 text-red-600 font-medium text-sm">
-                                                <FiTrash2 size={16} /> Excluir
-                                            </button>
+                                        <div className="flex justify-end gap-2 border-t pt-3">
+                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => openFormModal(eq)} className="p-2 cursor-pointer text-gray-500 hover:text-blue-600"><FiEdit /></motion.button>
+                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(eq)} className="p-2 cursor-pointer text-gray-500 hover:text-red-600"><FiTrash2 /></motion.button>
                                         </div>
                                     </motion.div>
                                 );
@@ -494,41 +564,40 @@ export default function GerenciarPatrimonios() {
                         </AnimatePresence>
                     </motion.div>
 
-                    {filteredEquipamentos.length === 0 && !pageLoading && (
-                        <div className="text-center py-16 text-gray-500">
-                             <FiPackage className="mx-auto text-4xl mb-2 text-gray-400" />
-                             <p className="font-semibold">Nenhum equipamento encontrado.</p>
-                             <p className="text-sm">Tente refinar sua busca ou cadastre um novo equipamento.</p>
+                    {filteredEquipamentos.length === 0 && (
+                        <div className="text-center py-10">
+                            <FiInbox className="text-6xl text-gray-300 mx-auto mb-4" />
+                            <p className="text-lg text-gray-500 font-semibold">Nenhum equipamento encontrado.</p>
+                            <p className="text-sm text-gray-400">Tente ajustar seus filtros ou pesquisa.</p>
                         </div>
                     )}
                 </div>
-                <Paginacao
-                    currentPage={currentPage}
-                    totalPages={totalPages}
+                
+                <Paginacao 
+                    currentPage={currentPage} 
+                    totalPages={totalPages} 
                     onPageChange={setCurrentPage}
                 />
             </motion.div>
-
+            
             <AnimatePresence>
-                {modal.formOpen && (
-                    <PatrimonioModal 
-                        key="form-modal"
+                {(modal.formOpen && (
+                    <PatrimonioModal
                         equipamento={selectedEquipamento}
-                        onClose={() => setModal({ ...modal, formOpen: false })}
+                        onClose={() => setModal({ formOpen: false, deleteOpen: false })}
                         onSave={handleSave}
                         isLoading={actionLoading}
                     />
-                )}
-                 {modal.deleteOpen && selectedEquipamento && (
+                ))}
+                {(modal.deleteOpen && selectedEquipamento && (
                     <ConfirmationModal
-                        key="confirm-modal"
                         title="Confirmar Exclusão"
-                        message={`Tem certeza que deseja excluir o patrimônio "${selectedEquipamento.patrimonio}"? Esta ação é irreversível.`}
+                        message={`Tem certeza que deseja excluir o equipamento de patrimônio ${selectedEquipamento.patrimonio}? Essa ação é irreversível.`}
                         onConfirm={handleDelete}
-                        onCancel={() => setModal({ ...modal, deleteOpen: false })}
+                        onCancel={() => setModal({ formOpen: false, deleteOpen: false })}
                         isLoading={actionLoading}
                     />
-                )}
+                ))}
             </AnimatePresence>
         </div>
     );

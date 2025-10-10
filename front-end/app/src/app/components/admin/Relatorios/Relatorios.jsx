@@ -13,6 +13,10 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner'; 
 import api from '../../../lib/api';
 
+// #################################################################
+// ############# FUNÇÕES E CONSTANTES AUXILIARES ###################
+// #################################################################
+
 const StatCard = ({ icon, title, value, color }) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -37,10 +41,10 @@ const capitalize = (str = '') => {
 };
 
 const PIE_COLORS_STATUS = {
-    'aberto': '#C62828', // Vermelho
-    'em andamento': '#F97316', // Laranja
-    'concluido': '#16A34A', // Verde
-    'cancelado': '#64748B' // Cinza
+    'aberto': '#C62828',
+    'em andamento': '#F97316',
+    'concluido': '#16A34A',
+    'cancelado': '#64748B'
 };
 
 const PIE_COLORS_TIPO = ['#B91C1C', '#374151', '#9CA3AF', '#4B5563', '#F87171'];
@@ -58,7 +62,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             <div className="bg-white p-3 rounded-lg shadow-md border border-gray-200">
                 <p className="font-bold text-gray-800">{label}</p>
                 {payload.map((p, i) => (
-                    <p key={i} style={{ color: p.color }} className="text-sm">
+                    <p key={i} style={{ color: p.color || p.fill }} className="text-sm">
                         {`${p.name}: ${p.dataKey.includes('minutos') ? Math.round(p.value) + ' min' : Math.round(p.value)}`}
                     </p>
                 ))}
@@ -67,6 +71,7 @@ const CustomTooltip = ({ active, payload, label }) => {
     }
     return null;
 };
+
 const exportToCSV = (data, filename) => {
     if (!data || data.length === 0) {
         toast.warning("Nenhum dado para exportar.");
@@ -75,7 +80,7 @@ const exportToCSV = (data, filename) => {
 
     const headers = Object.keys(data[0]);
     const csvContent = [
-        headers.map(h => capitalize(h)).join(';'), // Cabeçalho
+        headers.map(h => capitalize(h)).join(';'),
         ...data.map(row => headers.map(h => {
             const value = row[h] === null || row[h] === undefined ? '' : String(row[h]).replace(/"/g, '""');
             return `"${value}"`;
@@ -91,21 +96,127 @@ const exportToCSV = (data, filename) => {
     document.body.removeChild(link);
     toast.success('Dados exportados para CSV!');
 };
-const exportToPrintAsPhoto = () => {
-    toast.info("Abrindo o diálogo de impressão. Escolha 'Salvar como PDF' ou 'Salvar como Imagem' nas opções de destino.");
-    window.print();
-    toast.success('Diálogo de impressão aberto!');
+
+// #################################################################
+// ############# NOVO COMPONENTE WRAPPER PARA GRÁFICOS #############
+// #################################################################
+
+const ChartWrapper = ({ title, icon, data, filename, children, dataToExport = data, onExportComplete }) => {
+    const chartRef = useRef(null);
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExportPrint = useCallback(async () => {
+        setIsExporting(true);
+        const originalBody = document.body.innerHTML;
+        const originalTitle = document.title;
+        let success = false;
+
+        try {
+            const chartElement = chartRef.current;
+            if (!chartElement) {
+                toast.error("Elemento do gráfico não encontrado para exportação.");
+                return;
+            }
+
+            document.body.innerHTML = '';
+
+            const printContainer = document.createElement('div');
+            printContainer.id = 'print-container';
+            
+            // Certifica que o gráfico clonado tem 100% de largura para impressão
+            const clonedChart = chartElement.cloneNode(true);
+            clonedChart.style.width = '100%';
+            clonedChart.style.height = 'auto';
+
+            printContainer.appendChild(clonedChart);
+            document.body.appendChild(printContainer);
+            
+            document.title = title;
+            
+            const printButtons = document.body.querySelectorAll('.print-hide');
+            printButtons.forEach(btn => btn.style.display = 'none');
+
+            toast.info(`Preparando a impressão de: ${title}. Escolha 'Salvar como PDF' para exportar.`);
+            await new Promise(resolve => {
+                window.onafterprint = resolve;
+                window.print();
+            });
+
+            success = true;
+
+        } catch (error) {
+            console.error("Erro ao exportar impressão:", error);
+            toast.error("Falha na exportação de imagem. Tente novamente.");
+        } finally {
+            // Restaura o DOM original
+            document.body.innerHTML = originalBody;
+            document.title = originalTitle;
+            
+            setIsExporting(false);
+            
+            // Força a re-renderização do componente principal
+            if (success && onExportComplete) {
+                onExportComplete();
+            }
+            
+            toast.success('Exportação para PDF concluída (via diálogo de impressão)!');
+        }
+    }, [title, onExportComplete]);
+
+    const handleExportCSV = useCallback(() => {
+        setIsExporting(true);
+        exportToCSV(dataToExport, filename);
+        setIsExporting(false);
+    }, [dataToExport, filename]);
+
+    return (
+        <div className="bg-gray-50/50 p-6 rounded-xl shadow-inner border border-gray-100">
+            <div className="flex justify-between items-start gap-3 mb-4 print-hide">
+                <div className="flex items-center gap-3">
+                    {icon}
+                    <h2 className="font-bold text-lg text-gray-800">{title}</h2>
+                </div>
+                <div className="flex gap-2">
+                    <motion.button
+                        onClick={handleExportCSV}
+                        disabled={isExporting || !dataToExport || dataToExport.length === 0}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-1 bg-green-600 text-white font-semibold py-1.5 px-3 rounded-md shadow-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-wait text-xs"
+                    >
+                        <FiDownload size={14} /> CSV
+                    </motion.button>
+                    <motion.button
+                        onClick={handleExportPrint}
+                        disabled={isExporting}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-1 bg-blue-600 text-white font-semibold py-1.5 px-3 rounded-md shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-wait text-xs"
+                    >
+                        <FiPrinter size={14} /> PDF
+                    </motion.button>
+                </div>
+            </div>
+
+            <div ref={chartRef} className="p-2">
+                {children}
+            </div>
+        </div>
+    );
 };
 
+// #################################################################
+// ################# COMPONENTE PRINCIPAL (DASHBOARD) ##############
+// #################################################################
+
 export default function DashboardPage() {
-    const dashboardRef = useRef(null); 
-    
     const [statusData, setStatusData] = useState([]);
     const [tipoData, setTipoData] = useState([]);
     const [tecnicoData, setTecnicoData] = useState([]);
     const [chamadosEspera, setChamadosEspera] = useState([]);
     const [eficienciaApontamento, setEficienciaApontamento] = useState([]);
     const [usoPatrimonio, setUsoPatrimonio] = useState([]);
+    const [renderKey, setRenderKey] = useState(0); 
 
     const [generalStats, setGeneralStats] = useState({ 
         totalChamados: 0, 
@@ -116,22 +227,14 @@ export default function DashboardPage() {
     
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isExporting, setIsExporting] = useState(false);
-    const consolidatedData = useMemo(() => {
-        return [
-            { tipo: 'Estatísticas Gerais', total: generalStats.totalChamados, detalhe: 'Total Chamados' },
-            { tipo: 'Estatísticas Gerais', total: generalStats.chamadosConcluidos, detalhe: 'Concluídos' },
-            { tipo: 'Estatísticas Gerais', total: generalStats.tempoMedioGeral, detalhe: 'T. Médio Resolução (min)' },
-            { tipo: 'Estatísticas Gerais', total: generalStats.totalEmEspera, detalhe: 'Em Espera (Sem Técnico)' },
-            ...statusData.map(d => ({ tipo: 'Status', ...d })),
-            ...tipoData.map(d => ({ tipo: 'Tipo', ...d, total_chamado: d.total })),
-            ...tecnicoData.map(d => ({ tipo: 'Técnico Performance', ...d })),
-            ...chamadosEspera.map(d => ({ tipo: 'Chamados em Espera', ...d })),
-            ...eficienciaApontamento.map(d => ({ tipo: 'Eficiência Apontamento', ...d })),
-            ...usoPatrimonio.map(d => ({ tipo: 'Uso Patrimônio', ...d })),
-        ];
-    }, [generalStats, statusData, tipoData, tecnicoData, chamadosEspera, eficienciaApontamento, usoPatrimonio]);
 
+    const forceRender = useCallback(() => {
+        setRenderKey(prev => prev + 1);
+    }, []);
+
+    const consolidatedData = useMemo(() => {
+        return []; 
+    }, []);
 
     const fetchAllReports = useCallback(async () => {
         setLoading(true);
@@ -166,7 +269,7 @@ export default function DashboardPage() {
             const chamadosConcluidos = statusRes.find(item => item.status === 'concluido')?.total || 0;
             
             const validTemposMedios = tecnicoRes.filter(item => item.tempo_medio_resolucao_minutos != null)
-                                                .map(item => parseFloat(item.tempo_medio_resolucao_minutos));
+                                                 .map(item => parseFloat(item.tempo_medio_resolucao_minutos));
             
             const tempoMedioGeral = validTemposMedios.length > 0 
                 ? Math.round(validTemposMedios.reduce((sum, avg) => sum + avg, 0) / validTemposMedios.length) 
@@ -188,42 +291,49 @@ export default function DashboardPage() {
         fetchAllReports();
     }, [fetchAllReports]);
 
-    const handleExportCSV = () => {
-        setIsExporting(true);
-        exportToCSV(consolidatedData, "relatorio_dashboard_consolidado");
-        setIsExporting(false);
-    };
-
-    const handleExportPNG = async () => {
-        setIsExporting(true);
-        exportToPrintAsPhoto();
-        setIsExporting(false);
-    };
-
-
     if (loading) return <div className="flex justify-center items-center h-[50vh]"><FiLoader className="animate-spin text-4xl text-red-600"/></div>;
     if (error) return <div className="text-center p-10 font-semibold text-red-600 bg-red-50 rounded-lg max-w-7xl mx-auto">{error}</div>;
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 font-sans">
+        <div key={renderKey} className="p-4 sm:p-6 lg:p-8 font-sans">
             <style jsx global>{`
-                /* CSS Específico para Impressão (essencial para ocultar botões na "foto") */
                 @media print {
-                    /* Oculta o cabeçalho e os botões de exportação durante a impressão */
-                    .print-hide {
+                    .print-hide, .dashboard-container > *:not(#print-container) {
                         display: none !important;
                     }
-                    /* Remove margens e sombras desnecessárias para o formato A4/PDF */
-                    .dashboard-container {
-                        box-shadow: none !important;
+                    body, html {
                         margin: 0 !important;
                         padding: 0 !important;
+                        background: none !important;
+                        overflow: hidden; /* Remove scrollbars na impressão */
+                    }
+                    body > #print-container {
+                        display: block !important;
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: auto;
+                        padding: 20px; /* Margem interna para o gráfico */
+                        box-sizing: border-box;
+                    }
+                    body > #print-container > div {
+                        width: 100% !important;
+                        height: auto !important;
+                        max-height: 90vh;
+                        padding: 0;
+                        margin: 0;
+                    }
+                    /* Força o ResponsiveContainer dentro do Recharts a ocupar a largura total */
+                    .recharts-responsive-container {
+                        width: 100% !important;
+                        min-width: 500px; /* Garante tamanho mínimo para melhor visualização */
+                        height: 400px !important;
                     }
                 }
             `}</style>
 
             <motion.div 
-                ref={dashboardRef} 
                 initial={{ opacity: 0, scale: 0.98 }} 
                 animate={{ opacity: 1, scale: 1 }} 
                 className="bg-white p-5 sm:p-8 rounded-2xl shadow-lg max-w-7xl mx-auto border border-gray-200/80 dashboard-container"
@@ -234,32 +344,10 @@ export default function DashboardPage() {
                         <h1 className="text-3xl font-extrabold text-red-600 drop-shadow-sm">Dashboard de Análise Operacional</h1>
                         <p className="text-sm text-gray-600 mt-1">Visão geral dos chamados, performance da equipe e utilização de recursos.</p>
                     </div>
-                    <div className="flex gap-3 mt-4 sm:mt-0">
-                        <motion.button
-                            onClick={handleExportCSV}
-                            disabled={isExporting}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex items-center gap-2 bg-green-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-wait text-sm"
-                        >
-                            {isExporting ? <FiLoader size={18} className="animate-spin" /> : <FiDownload size={18} />} 
-                            Exportar CSV
-                        </motion.button>
-                        <motion.button
-                            onClick={handleExportPNG}
-                            disabled={isExporting}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex items-center gap-2 bg-blue-600 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-wait text-sm"
-                        >
-                            {isExporting ? <FiLoader size={18} className="animate-spin" /> : <FiPrinter size={18} />} 
-                            Exportar Impressão/Foto
-                        </motion.button>
-                    </div>
                 </header>
 
                 <div className="space-y-8">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 print-hide">
                         <StatCard icon={<FiTrendingUp size={24} />} title="Total de Chamados" value={generalStats.totalChamados} color="red" />
                         <StatCard icon={<FiCheckCircle size={24} />} title="Chamados Concluídos" value={generalStats.chamadosConcluidos} color="green" />
                         <StatCard icon={<FiClock size={24} />} title="Tempo Médio Resolução (min)" value={generalStats.tempoMedioGeral} color="yellow" />
@@ -267,11 +355,13 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="bg-gray-50/50 p-6 rounded-xl shadow-inner border border-gray-100">
-                            <div className="flex items-center gap-3 mb-4">
-                                <FiPieChart className="text-red-600" size={20} />
-                                <h2 className="font-bold text-lg text-gray-800">Distribuição por Status</h2>
-                            </div>
+                        <ChartWrapper 
+                            title="Distribuição por Status" 
+                            icon={<FiPieChart className="text-red-600" size={20} />}
+                            filename="distribuicao_status"
+                            data={statusData}
+                            onExportComplete={forceRender}
+                        >
                             <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
                                     <Pie 
@@ -291,13 +381,15 @@ export default function DashboardPage() {
                                     <Legend iconType="circle" formatter={capitalize} />
                                 </PieChart>
                             </ResponsiveContainer>
-                        </div>
+                        </ChartWrapper>
                         
-                        <div className="bg-gray-50/50 p-6 rounded-xl shadow-inner border border-gray-100">
-                            <div className="flex items-center gap-3 mb-4">
-                                <FiTag className="text-red-600" size={20} />
-                                <h2 className="font-bold text-lg text-gray-800">Distribuição por Pool/Tipo</h2>
-                            </div>
+                        <ChartWrapper 
+                            title="Distribuição por Pool/Tipo" 
+                            icon={<FiTag className="text-red-600" size={20} />}
+                            filename="distribuicao_tipo"
+                            data={tipoData}
+                            onExportComplete={forceRender}
+                        >
                             <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
                                     <Pie 
@@ -316,16 +408,17 @@ export default function DashboardPage() {
                                     <Legend iconType="square" formatter={capitalize} />
                                 </PieChart>
                             </ResponsiveContainer>
-                        </div>
+                        </ChartWrapper>
                     </div>
                     
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="bg-gray-50/50 p-6 rounded-xl shadow-inner border border-gray-100">
-                            <div className="flex items-center gap-3 mb-4">
-                                <FiTool className="text-red-600" size={20} />
-                                <h2 className="font-bold text-lg text-gray-800">Eficiência de Apontamentos (Tempo Médio por Ação)</h2>
-                            </div>
-                            
+                        <ChartWrapper
+                            title="Eficiência de Apontamentos (Tempo Médio por Ação)"
+                            icon={<FiTool className="text-red-600" size={20} />}
+                            filename="eficiencia_apontamentos"
+                            data={eficienciaApontamento}
+                            onExportComplete={forceRender}
+                        >
                             <div style={{ width: '100%', height: 350 }}>
                                 <ResponsiveContainer>
                                     <AreaChart data={eficienciaApontamento} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -345,14 +438,15 @@ export default function DashboardPage() {
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
-                        </div>
+                        </ChartWrapper>
 
-                        <div className="bg-gray-50/50 p-6 rounded-xl shadow-inner border border-gray-100">
-                            <div className="flex items-center gap-3 mb-4">
-                                <FiPackage className="text-red-600" size={20} />
-                                <h2 className="font-bold text-lg text-gray-800">Patrimônios Mais Problemáticos (Uso em Chamados)</h2>
-                            </div>
-                            
+                        <ChartWrapper
+                            title="Patrimônios Mais Problemáticos (Uso em Chamados)"
+                            icon={<FiPackage className="text-red-600" size={20} />}
+                            filename="uso_patrimonio"
+                            data={usoPatrimonio}
+                            onExportComplete={forceRender}
+                        >
                             <div className="h-[350px] overflow-auto">
                                 <table className="w-full text-left text-sm">
                                     <thead className="sticky top-0 bg-white shadow-sm border-b text-gray-500">
@@ -376,15 +470,16 @@ export default function DashboardPage() {
                                     <div className="text-center py-10 text-gray-500">Nenhum patrimônio registrado em chamados.</div>
                                 )}
                             </div>
-                        </div>
+                        </ChartWrapper>
                     </div>
 
-                    <div className="bg-gray-50/50 p-6 rounded-xl shadow-inner border border-gray-100">
-                        <div className="flex items-center gap-3 mb-4">
-                            <FiUsers className="text-red-600" size={20} />
-                            <h2 className="font-bold text-lg text-gray-800">Performance Geral dos Técnicos</h2>
-                        </div>
-                        
+                    <ChartWrapper
+                        title="Performance Geral dos Técnicos"
+                        icon={<FiUsers className="text-red-600" size={20} />}
+                        filename="performance_tecnicos"
+                        data={tecnicoData}
+                        onExportComplete={forceRender}
+                    >
                         <div className="md:hidden">
                             <table className="w-full text-left text-sm">
                                 <thead className="border-b text-gray-500">
@@ -420,10 +515,10 @@ export default function DashboardPage() {
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
-                    </div>
+                    </ChartWrapper>
                 </div>
             </motion.div>
-             <span className="hidden bg-red-100 text-red-600 bg-yellow-100 text-yellow-600 bg-green-100 text-green-600 bg-orange-100 text-orange-600"></span>
+            <span className="hidden bg-red-100 text-red-600 bg-yellow-100 text-yellow-600 bg-green-100 text-green-600 bg-orange-100 text-orange-600"></span>
         </div>
     );
 }

@@ -14,12 +14,13 @@ class EquipamentoController {
 
     static async criar(req, res) {
         try {
-            const { patrimonio, sala, equipamento } = req.body;
+            // Incluindo 'status' no desestruturamento
+            const { patrimonio, sala, equipamento, status } = req.body;
             if (!patrimonio) {
                 return res.status(400).json({ message: "O número do patrimônio é obrigatório." });
             }
 
-            const novoEquipamento = await Equipamento.create({ patrimonio, sala, equipamento });
+            const novoEquipamento = await Equipamento.create({ patrimonio, sala, equipamento, status }); 
             res.status(201).json(novoEquipamento);
         } catch (err) {
             if (err.name === 'SequelizeUniqueConstraintError') {
@@ -33,14 +34,14 @@ class EquipamentoController {
     static async atualizar(req, res) {
         try {
             const { patrimonio } = req.params; 
-            const { sala, equipamento } = req.body;
+            const { sala, equipamento, status } = req.body;
 
             const eqp = await Equipamento.findByPk(patrimonio);
             if (!eqp) {
                 return res.status(404).json({ message: "Equipamento não encontrado." });
             }
             
-            await eqp.update({ sala, equipamento });
+            await eqp.update({ sala, equipamento, status }); 
             res.json(eqp);
 
         } catch (err) {
