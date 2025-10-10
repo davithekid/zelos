@@ -6,8 +6,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import api from '../../../lib/api';
 
-import GerenciarPedidos from '../GerenciarPedidos/GerenciarPedidos'; 
 import GerenciarFechamentos from '../GerenciarFechamento/GerenciarFechamento'; 
+
+// Mapeamento de classes para Tailwind para evitar a remoção de classes dinâmicas
+const tailwindColorMap = {
+    red: { iconBg: 'bg-red-100/70', iconText: 'text-red-600', badgeBg: 'bg-red-100', badgeText: 'text-red-800', activeBorder: 'border-red-500' },
+    yellow: { iconBg: 'bg-yellow-100/70', iconText: 'text-yellow-600', badgeBg: 'bg-yellow-100', badgeText: 'text-yellow-800', activeBorder: 'border-yellow-500' },
+    green: { iconBg: 'bg-green-100/70', iconText: 'text-green-600', badgeBg: 'bg-green-100', badgeText: 'text-green-800', activeBorder: 'border-green-500' },
+    gray: { iconBg: 'bg-gray-100/70', iconText: 'text-gray-600', badgeBg: 'bg-gray-100', badgeText: 'text-gray-800', activeBorder: 'border-gray-500' },
+    blue: { iconBg: 'bg-blue-100/70', iconText: 'text-blue-600', badgeBg: 'bg-blue-100', badgeText: 'text-blue-800', activeBorder: 'border-blue-500' },
+};
 
 const capitalize = (s = '') => {
     if (!s) return '';
@@ -17,14 +25,19 @@ const capitalize = (s = '') => {
 
 const StatusBadge = ({ status }) => {
     const statusLabel = capitalize(status === 'em andamento' ? 'Em Andamento' : status);
+    
     const config = {
-        'Aberto': { icon: <FiAlertTriangle />, color: 'red' },
-        'Em Andamento': { icon: <FiLoader className="animate-spin" />, color: 'yellow' },
-        'Concluido': { icon: <FiCheckCircle />, color: 'green' },
-        'Cancelado': { icon: <FiSlash />, color: 'gray' },
+        'Aberto': { icon: <FiAlertTriangle />, colorKey: 'red' },
+        'Em Andamento': { icon: <FiLoader className="animate-spin" />, colorKey: 'yellow' },
+        'Concluido': { icon: <FiCheckCircle />, colorKey: 'green' },
+        'Cancelado': { icon: <FiSlash />, colorKey: 'gray' },
     };
-    const { icon, color } = config[statusLabel] || { icon: '?', color: 'gray' };
-    const colorClasses = `bg-${color}-100 text-${color}-800`;
+    
+    const { icon, colorKey } = config[statusLabel] || { icon: '?', colorKey: 'gray' };
+    
+    // Usando o mapeamento corrigido
+    const { badgeBg, badgeText } = tailwindColorMap[colorKey] || tailwindColorMap.gray;
+    const colorClasses = `${badgeBg} ${badgeText}`;
 
     return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${colorClasses}`}>
@@ -45,10 +58,11 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
         clickClasses = "cursor-default";
     }
 
-    const borderColor = color === 'red' ? 'red' : color; 
+    // Usando o mapeamento corrigido
+    const colorConfig = tailwindColorMap[color] || tailwindColorMap.red; 
 
     const activeClasses = isActive 
-        ? `border-2 border-red-500`
+        ? `border-2 ${colorConfig.activeBorder}`
         : `hover:shadow-xl`; 
     
     const handleClick = () => {
@@ -65,7 +79,8 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
             className={`${baseClasses} ${clickClasses} ${activeClasses} min-w-[200px]`}
             onClick={handleClick}
         >
-            <div className={`text-${color}-600 p-2 rounded-full bg-${color}-100/70 w-fit mb-3`}>
+            {/* Usando classes do mapeamento */}
+            <div className={`${colorConfig.iconText} p-2 rounded-full ${colorConfig.iconBg} w-fit mb-3`}>
                 {icon}
             </div>
             <p className="text-xl font-extrabold text-gray-800">
@@ -163,7 +178,6 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
     const [counts, setCounts] = useState({
         todos: 0,
         em_andamento: 0,
-        solicitacao_pedido: 0,
         solicitacao_fechamento: 0,
     });
     
@@ -185,11 +199,9 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
         try {
             const [
                 chamadosTodosRes,
-                pedidosRes, 
                 fechamentosRes
             ] = await Promise.all([
                 api.get('/chamados'), 
-                api.get('/pedidos-chamado/pendentes'),
                 api.get('/pedidos-fechamento/pendentes')
             ]);
 
@@ -201,7 +213,6 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
             setCounts({
                 todos: todosChamados.length,
                 em_andamento: emAndamentoCount, 
-                solicitacao_pedido: pedidosRes.data.length,
                 solicitacao_fechamento: fechamentosRes.data.length,
             });
         } catch (error) {
@@ -303,8 +314,6 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'pedidos':
-                return <GerenciarPedidos onUpdate={fetchCounts} />;
             case 'fechamentos':
                 return <GerenciarFechamentos onUpdate={fetchCounts} />;
             case 'tabela':
@@ -430,7 +439,8 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
     return (
         <div className="p-4 sm:p-6 lg:p-8 font-sans">
             <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* Alterado para grid-cols-3, removendo o espaço do 4º card de pedidos */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-6 mb-8">
                     <ReportCard 
                         title="Todos os Chamados"
                         count={counts.todos}
@@ -457,18 +467,6 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
                         }}
                         isClickable={true} 
                         isActive={activeTab === 'tabela' && filtroStatus === 'em andamento'}
-                    />
-                    <ReportCard 
-                        title="Solicitações de Pedido"
-                        count={counts.solicitacao_pedido}
-                        icon={<FiBriefcase size={24} />}
-                        color="blue"
-                        isLoading={countsLoading}
-                        onClick={() => {
-                            setActiveTab('pedidos');
-                            setFiltroStatus('');
-                        }}
-                        isActive={activeTab === 'pedidos'}
                     />
                     <ReportCard 
                         title="Solicitações de Fechamento"
@@ -548,7 +546,6 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
                     )}
                 </AnimatePresence>
             </motion.div>
-            <span className="hidden bg-red-100 text-red-800 bg-yellow-100 text-yellow-800 bg-green-100 text-green-800 bg-gray-100 text-gray-800 ring-yellow-500/50 border-yellow-600/50 ring-blue-500/50 border-blue-600/50 ring-green-500/50 border-green-600/50"></span>
         </div>
     );
 }
