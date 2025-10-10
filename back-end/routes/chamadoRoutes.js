@@ -11,6 +11,7 @@ const permitir = (perfisPermitidos) => (req, res, next) => {
     return autorizar.autorizacao(req.user, perfisPermitidos)(req, res, next);
 }
 
+
 router.get('/pool-tecnico',
     AuthMiddleware.verifyToken,
     permitir(['tecnico', 'admin']),

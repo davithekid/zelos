@@ -20,10 +20,14 @@ export default function ModalAtribuicao({ aberto, onClose }) {
             className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-2xl font-extrabold text-red-600 mb-4">Permissão necessária!</h3>
+            <h3 className="text-2xl font-extrabold text-red-600 mb-4">
+              Chamado Atribuído com Sucesso!
+            </h3>
+            
             <p className="text-gray-700 mb-6">
-              O seu pedido de atribuição de chamado foi enviado para a administração e está em análise. Nossa equipe entrará em contato em breve.
+              O **chamado atribuído** foi adicionado ao seu perfil. Agora você pode vê-lo e gerenciar as atividades na sua área de Chamados Ativos.
             </p>
+
             <button
               onClick={onClose}
               className="mt-2 bg-red-600 text-white py-3 px-6 rounded-xl font-semibold shadow hover:bg-red-700 transition cursor-pointer"
