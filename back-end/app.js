@@ -21,6 +21,7 @@ import equipamentoRoutes from './routes/equipamentoRoutes.js';
 import notificacaoRoutes from './routes/notificacaoRoutes.js';
 import pedidoChamadoRoutes from './routes/pedidoChamadoRoutes.js'
 import pedidosFechamentosRoutes from './routes/pedidoFechamentosRoutes.js'
+import poolTecnicoRoutes from './routes/poolTecnico.js'
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -73,6 +74,7 @@ app.use('/equipamentos', equipamentoRoutes);
 app.use('/notificacao', notificacaoRoutes);
 app.use('/pedidos-chamado', pedidoChamadoRoutes);
 app.use('/pedidos-fechamento', pedidosFechamentosRoutes);
+app.use('/pool-tecnico', poolTecnicoRoutes )
 
 async function StartServer() {
     try {

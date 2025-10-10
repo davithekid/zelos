@@ -4,8 +4,57 @@ import Usuario from '../entities/Usuario.js';
 import Equipamento from '../entities/Equipamento.js';
 import Apontamento from '../entities/Apontamento.js';
 import Pool from '../entities/Pool.js';
+import PoolTecnico from '../entities/PoolTecnico.js';
 
 class ChamadoController {
+
+    static async listarChamadosParaTecnico(req, res) {
+        try {
+            const tecnico_id = req.user.id;
+            const poolsDoTecnico = await PoolTecnico.findAll({
+                where: { id_tecnico: tecnico_id },
+                attributes: ['id_pool']
+            });
+
+            if (poolsDoTecnico.length === 0) {
+                return res.json([]);
+            }
+
+            const poolIds = poolsDoTecnico.map(pt => pt.id_pool);
+
+            const tecnico = await Usuario.findByPk(tecnico_id, {
+                attributes: ['especialidade']
+            });
+
+            const especialidadeTecnico = tecnico ? tecnico.especialidade : null;
+            let whereClause = {
+                pool_id: { [Op.in]: poolIds },
+                // CORREÇÃO: Use 'em_andamento' se for o formato salvo no banco de dados.
+                status: { [Op.in]: ['aberto', 'em_andamento'] }
+            };
+
+            if (especialidadeTecnico) {
+                whereClause[Op.or] = [
+                    { pool_id: { [Op.in]: poolIds } },
+                    { '$pool.titulo$': especialidadeTecnico }
+                ];
+            }
+
+            const chamados = await Chamado.findAll({
+                include: [
+                    { model: Usuario, as: 'usuario', attributes: ['nome'] },
+                    { model: Pool, as: 'pool', attributes: ['id', 'titulo', 'descricao'] }
+                ],
+                where: whereClause,
+                order: [['criado_em', 'ASC']]
+            });
+
+            res.json(chamados);
+        } catch (err) {
+            console.error("Erro ao listar chamados para o técnico:", err);
+            res.status(500).json({ message: 'Erro ao buscar chamados disponíveis.' });
+        }
+    }
 
     static async listar(req, res) {
         try {

@@ -11,6 +11,12 @@ const permitir = (perfisPermitidos) => (req, res, next) => {
     return autorizar.autorizacao(req.user, perfisPermitidos)(req, res, next);
 }
 
+router.get('/pool-tecnico',
+    AuthMiddleware.verifyToken,
+    permitir(['tecnico', 'admin']),
+    ChamadoController.listarChamadosParaTecnico
+);
+
 router.get('/meu-historico',
     AuthMiddleware.verifyToken,
     permitir(['tecnico']),
@@ -31,7 +37,7 @@ router.get('/:id',
 
 router.get('/:id/apontamentos',
     AuthMiddleware.verifyToken,
-    permitir(['admin', 'tecnico', 'usuario']), 
+    permitir(['admin', 'tecnico', 'usuario']),
     ChamadoController.listarApontamentos
 );
 
