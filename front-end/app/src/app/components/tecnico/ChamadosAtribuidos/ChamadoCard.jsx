@@ -9,7 +9,7 @@ const formatarData = (dataString) => {
     return formatted.replace(',', ' às');
 };
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const PLACEHOLDER_URL = "/placeholder-image.png";
+const PLACEHOLDER_URL = "/placeholder-image.webp";
 
 export default function ChamadoCard({ chamado, onVerDetalhes, onAbrirApontamento }) {
     
