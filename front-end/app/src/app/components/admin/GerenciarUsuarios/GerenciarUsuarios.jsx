@@ -12,6 +12,15 @@ const capitalize = (s = '') => {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// Mapeamento de cores para evitar problemas de purga do Tailwind CSS
+const colorMap = {
+    green: { bg: 'bg-green-100', text: 'text-green-800' },
+    red: { bg: 'bg-red-100', text: 'text-red-800' },
+    blue: { bg: 'bg-blue-100', text: 'text-blue-800' },
+    purple: { bg: 'bg-purple-100', text: 'text-purple-800' },
+    gray: { bg: 'bg-gray-100', text: 'text-gray-800' },
+};
+
 const StatusBadge = ({ status }) => {
     const statusLabel = capitalize(status);
     const config = {
@@ -19,10 +28,10 @@ const StatusBadge = ({ status }) => {
         'Inativo': { icon: <FiUserX />, color: 'red' },
     };
     const { icon, color } = config[statusLabel] || { icon: <FiUser />, color: 'gray' };
-    const colorClasses = `bg-${color}-100 text-${color}-800`;
+    const { bg, text } = colorMap[color] || colorMap.gray;
 
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${colorClasses}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>
             {icon} {statusLabel}
         </span>
     );
@@ -31,21 +40,23 @@ const StatusBadge = ({ status }) => {
 const FuncaoBadge = ({ funcao }) => {
     const funcaoLabel = capitalize(funcao);
     const config = {
-        'Admin': { color: 'red' },
+        'Admin': { color: 'purple' }, // Mudei para 'purple' para combinar com o ReportCard
         'Tecnico': { color: 'blue' },
         'Usuario': { color: 'green' },
     };
     const { color } = config[funcaoLabel] || { color: 'gray' };
-    const colorClasses = `bg-${color}-100 text-${color}-800`;
+    const { bg, text } = colorMap[color] || colorMap.gray;
 
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${colorClasses}`}>
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>
             {funcaoLabel}
         </span>
     );
 };
 
 const Spinner = () => <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />;
+
+// --- MODAL DE INFORMAÇÕES DO TÉCNICO ---
 const TechnicianInfoModal = ({ user, onClose }) => {
     if (!user) return null;
 
@@ -55,7 +66,7 @@ const TechnicianInfoModal = ({ user, onClose }) => {
         { label: 'Email', value: user.email },
         { label: 'Função', value: <FuncaoBadge funcao={user.funcao} /> },
         { label: 'Status', value: <StatusBadge status={user.status} /> },
-        { label: 'Especialidade', value: user.especialidade || 'Nenhuma especialidade definida' },
+        { label: 'POOL_TECNICO (Especialidade)', value: user.especialidade || 'Nenhuma especialidade definida' },
     ];
 
     return (
@@ -75,7 +86,7 @@ const TechnicianInfoModal = ({ user, onClose }) => {
                         <div key={index} className="flex flex-col text-left">
                             <span className="text-sm font-medium text-gray-500">{item.label}</span>
                             <div className="text-gray-800 font-semibold mt-0.5">{item.value}</div>
-                            {item.label === 'Especialidade' && (
+                            {item.label === 'POOL_TECNICO (Especialidade)' && (
                                 <p className="text-xs text-gray-400 italic mt-1">Foco principal de atuação.</p>
                             )}
                         </div>
@@ -97,6 +108,195 @@ const TechnicianInfoModal = ({ user, onClose }) => {
     );
 };
 
+// --- MODAL DE EDIÇÃO DE USUÁRIO ---
+const EditUserModal = ({ editingUser, setEditingUser, handleSave, especialidadesDisponiveis, actionLoading }) => {
+    const handleClose = () => setEditingUser(null);
+    const isTechnician = editingUser?.funcao === 'tecnico';
+
+    if (!editingUser) return null;
+
+    return (
+        <AnimatePresence>
+            {editingUser && (
+                <motion.div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={handleClose}
+                >
+                    <motion.div
+                        className="bg-white rounded-xl w-full max-w-lg shadow-2xl"
+                        initial={{ y: 50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 50, opacity: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-6 border-b pb-4">
+                                <h3 className="font-bold text-xl text-blue-600 flex items-center gap-2">
+                                    <FiEdit size={20} /> Editar Usuário: {editingUser.nome}
+                                </h3>
+                                <button onClick={handleClose} className="text-gray-400 hover:text-gray-700 p-1 rounded-full">
+                                    <FiX size={20} />
+                                </button>
+                            </div>
+
+                            <form className="space-y-4">
+                                {/* Campo Função */}
+                                <div>
+                                    <label htmlFor="funcao" className="block text-sm font-medium text-gray-700 mb-1">Função</label>
+                                    <div className="relative">
+                                        <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        <select
+                                            id="funcao"
+                                            value={editingUser.funcao}
+                                            onChange={(e) => setEditingUser({ ...editingUser, funcao: e.target.value, especialidade: e.target.value !== 'tecnico' ? null : editingUser.especialidade })}
+                                            className="appearance-none w-full border border-gray-300 rounded-lg py-2 px-3 pr-10 text-gray-700 focus:ring-red-500 focus:border-red-500 transition-all"
+                                            disabled={actionLoading}
+                                        >
+                                            <option value="usuario">Usuário</option>
+                                            <option value="tecnico">Técnico</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Campo Especialidade (POOL_TECNICO) - Visível apenas para Técnicos */}
+                                {isTechnician && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <label htmlFor="especialidade" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Pool Técnico (Especialidade) <span className="text-xs text-gray-400 ml-1">(Opcional)</span>
+                                        </label>
+                                        <div className="relative">
+                                            <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                            <select
+                                                id="especialidade"
+                                                value={editingUser.especialidade || ''}
+                                                onChange={(e) => setEditingUser({ ...editingUser, especialidade: e.target.value })}
+                                                className="appearance-none w-full border border-gray-300 rounded-lg py-2 px-3 pr-10 text-gray-700 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                disabled={actionLoading}
+                                            >
+                                                <option value="">Sem Especialidade Definida</option>
+                                                {especialidadesDisponiveis.map(esp => (
+                                                    <option key={esp} value={esp}>{esp}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </form>
+                        </div>
+
+                        <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                            <motion.button 
+                                type="button" 
+                                onClick={handleClose} 
+                                whileHover={{ scale: 1.05 }} 
+                                whileTap={{ scale: 0.95 }}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
+                                disabled={actionLoading}
+                            >
+                                Cancelar
+                            </motion.button>
+                            <motion.button 
+                                type="button" 
+                                onClick={handleSave} 
+                                whileHover={{ scale: 1.05 }} 
+                                whileTap={{ scale: 0.95 }}
+                                className={`px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2 ${actionLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                disabled={actionLoading}
+                            >
+                                {actionLoading ? <Spinner /> : <FiCheckCircle size={18} />}
+                                {actionLoading ? 'Salvando...' : 'Salvar Alterações'}
+                            </motion.button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+// --- MODAL DE CONFIRMAÇÃO DE STATUS ---
+const StatusToggleModal = ({ userToToggle, setUserToToggle, handleToggleStatus, actionLoading }) => {
+    if (!userToToggle) return null;
+
+    const currentStatus = userToToggle.status;
+    const isActivating = currentStatus === 'inativo';
+    const actionText = isActivating ? 'Ativar' : 'Inativar';
+    const icon = isActivating ? <FiUserCheck size={24} className="text-green-600" /> : <FiUserX size={24} className="text-red-600" />;
+    const confirmButtonClass = isActivating 
+        ? 'bg-green-600 hover:bg-green-700' 
+        : 'bg-red-600 hover:bg-red-700';
+
+    const handleClose = () => setUserToToggle(null);
+
+    return (
+        <AnimatePresence>
+            {userToToggle && (
+                <motion.div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={handleClose}
+                >
+                    <motion.div
+                        className="bg-white rounded-xl w-full max-w-sm shadow-2xl"
+                        initial={{ y: 50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 50, opacity: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6 text-center">
+                            <div className="flex justify-center mb-4">
+                                {icon}
+                            </div>
+                            <h3 className="font-bold text-xl text-gray-800 mb-2">
+                                Confirmação de {actionText}
+                            </h3>
+                            <p className="text-gray-600 mb-6">
+                                Tem certeza que deseja **{actionText.toLowerCase()}** o usuário **{userToToggle.nome}**?
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+                            <motion.button 
+                                type="button" 
+                                onClick={handleClose} 
+                                whileHover={{ scale: 1.05 }} 
+                                whileTap={{ scale: 0.95 }}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
+                                disabled={actionLoading}
+                            >
+                                Cancelar
+                            </motion.button>
+                            <motion.button 
+                                type="button" 
+                                onClick={handleToggleStatus} 
+                                whileHover={{ scale: 1.05 }} 
+                                whileTap={{ scale: 0.95 }}
+                                className={`px-4 py-2 text-white font-semibold rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 ${confirmButtonClass} ${actionLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                disabled={actionLoading}
+                            >
+                                {actionLoading ? <Spinner /> : <FiCheckCircle size={18} />}
+                                {actionLoading ? 'Processando...' : actionText}
+                            </motion.button>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+};
+
+// --- REPORT CARD ---
 const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, isClickable = true }) => {
     const baseClasses = "flex flex-col p-5 rounded-xl shadow-lg transition-all duration-300 transform bg-white";
     
@@ -117,6 +317,8 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
         }
     };
 
+    const { bg: iconBg, text: iconText } = colorMap[color] || colorMap.gray;
+
     return (
         <motion.div 
             layout 
@@ -125,7 +327,7 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
             className={`${baseClasses} ${clickClasses} ${activeClasses} min-w-[200px]`}
             onClick={handleClick}
         >
-            <div className={`text-${color}-600 p-2 rounded-full bg-${color}-100/70 w-fit mb-3`}>
+            <div className={`${iconText} p-2 rounded-full ${iconBg}/70 w-fit mb-3`}>
                 {icon}
             </div>
             <p className="text-xl font-extrabold text-gray-800">
@@ -136,6 +338,7 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
     );
 };
 
+// --- PAGINAÇÃO ---
 const Paginacao = ({ currentPage, totalPages, onPageChange }) => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -216,6 +419,7 @@ const Paginacao = ({ currentPage, totalPages, onPageChange }) => {
     );
 };
 
+// --- COMPONENTE PRINCIPAL ---
 export default function GerenciarUsuarios() {
     const [usuarios, setUsuarios] = useState([]);
     const [counts, setCounts] = useState({
@@ -238,10 +442,21 @@ export default function GerenciarUsuarios() {
     
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    
+    // Lista de especialidades (POOL_TECNICO) para o select.
+    const especialidadesDisponiveis = [
+        'Redes', 
+        'Hardware', 
+        'Software', 
+        'Infraestrutura', 
+        'Suporte N1', 
+        'Segurança'
+    ];
 
     const fetchCounts = useCallback(async () => {
         setCountsLoading(true);
         try {
+            // NOTE: Em uma API real, seria mais performático ter um endpoint de /usuarios/counts
             const usuariosRes = await api.get('/usuarios');
             const todosUsuarios = usuariosRes.data || [];
 
@@ -293,12 +508,26 @@ export default function GerenciarUsuarios() {
 
     const handleSave = async () => {
         if (!editingUser) return;
+        
+        // O payload deve conter a função e, se for técnico, a especialidade.
+        const payload = {
+            funcao: editingUser.funcao,
+        };
+
+        // Se o usuário for um técnico, enviamos a especialidade (POOL_TECNICO)
+        if (editingUser.funcao === 'tecnico') {
+            // Mantém o campo 'especialidade' para o backend
+            payload.especialidade = editingUser.especialidade || null; 
+        } else {
+            // Limpa a especialidade se a função não for 'tecnico'
+            payload.especialidade = null;
+        }
+
         setActionLoading(true);
         try {
-            await api.patch(`/usuarios/${editingUser.id}`, {
-                funcao: editingUser.funcao,
-                especialidade: editingUser.especialidade || null
-            });
+            // Supondo que o PATCH deve atualizar apenas a função e especialidade
+            await api.patch(`/usuarios/${editingUser.id}`, payload);
+            
             await fetchUsuariosData();
             fetchCounts();
             setEditingUser(null);
@@ -316,6 +545,7 @@ export default function GerenciarUsuarios() {
         setActionLoading(true);
         try {
             const novoStatus = userToToggle.status === 'ativo' ? 'inativo' : 'ativo';
+            // Supondo um endpoint de toggle de status específico
             await api.patch(`/usuarios/${userToToggle.id}/status`, { status: novoStatus });
             await fetchUsuariosData();
             fetchCounts();
@@ -333,15 +563,15 @@ export default function GerenciarUsuarios() {
         if (usuario.funcao === 'tecnico') {
             setViewingUser(usuario);
         } else {
-            toast.info(`Detalhes avançados apenas para técnicos. Para editar, use o ícone ${<FiEdit size={16} />}`);
+            toast.info(`Detalhes avançados apenas para técnicos. Para editar, use o ícone de edição.`);
         }
     };
 
     const filteredUsers = useMemo(() => {
         return usuarios.filter(u => {
             const matchesSearch = u.nome.toLowerCase().includes(pesquisa.toLowerCase()) || 
-                                u.email.toLowerCase().includes(pesquisa.toLowerCase()) ||
-                                u.username.toLowerCase().includes(pesquisa.toLowerCase());
+                                 u.email.toLowerCase().includes(pesquisa.toLowerCase()) ||
+                                 u.username.toLowerCase().includes(pesquisa.toLowerCase());
             const matchesStatus = filtroStatus === '' || u.status === filtroStatus;
             const matchesFuncao = filtroFuncao === '' || u.funcao === filtroFuncao;
             
@@ -390,7 +620,7 @@ export default function GerenciarUsuarios() {
                             setFiltroFuncao('');
                             setCurrentPage(1);
                         }}
-                        isActive={filtroStatus === 'ativo'}
+                        isActive={filtroStatus === 'ativo' && filtroFuncao === ''}
                     />
                     <ReportCard 
                         title="Técnicos"
@@ -403,7 +633,7 @@ export default function GerenciarUsuarios() {
                             setFiltroStatus('');
                             setCurrentPage(1);
                         }}
-                        isActive={filtroFuncao === 'tecnico'}
+                        isActive={filtroFuncao === 'tecnico' && filtroStatus === ''}
                     />
                     <ReportCard 
                         title="Administradores"
@@ -416,7 +646,7 @@ export default function GerenciarUsuarios() {
                             setFiltroStatus('');
                             setCurrentPage(1);
                         }}
-                        isActive={filtroFuncao === 'admin'}
+                        isActive={filtroFuncao === 'admin' && filtroStatus === ''}
                     />
                 </div>
                 
@@ -435,69 +665,88 @@ export default function GerenciarUsuarios() {
                                     {filtroFuncao && ` • Filtrado por função: ${capitalize(filtroFuncao)}`}
                                 </p>
                             </div>
-                            <div className="flex gap-3 w-full sm:w-auto">
-                                <motion.button
+                            <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+                                <motion.button 
                                     onClick={handleRefresh}
-                                    disabled={countsLoading || pageLoading}
-                                    className="flex items-center gap-2 bg-gray-200 text-gray-800 font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:bg-gray-300 transition-all w-full sm:w-auto justify-center cursor-pointer disabled:opacity-50 disabled:cursor-wait">
-                                    {countsLoading || pageLoading ? <FiLoader size={18} className="animate-spin" /> : <FiRefreshCw size={18} />} 
+                                    whileHover={{ scale: 1.05 }} 
+                                    whileTap={{ scale: 0.95 }}
+                                    className="p-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                >
+                                    <FiRefreshCw size={18} />
                                     Atualizar
                                 </motion.button>
+                            
+                                {/* INÍCIO DA CORREÇÃO DO ERRO DE SINTAXE */}
+                                <motion.button 
+                                    onClick={() => toast.info('Funcionalidade de Novo Usuário pendente')}
+                                    whileHover={{ scale: 1.05 }} 
+                                    whileTap={{ scale: 0.95 }}
+                                    className="p-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-colors flex items-center gap-2"
+                                >
+                                    <FiPlus size={18} />
+                                    Novo Usuário
+                                </motion.button>
+                                {/* FIM DA CORREÇÃO */}
+
                             </div>
                         </header>
-
-                        <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
-                            <div className="relative w-full md:flex-1 group">
-                                <FiSearch className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 group-focus-within:text-red-600 transition-colors" />
+                        
+                        {/* Seção de Filtros e Pesquisa */}
+                        <div className="flex flex-col md:flex-row flex-wrap justify-between gap-4 mb-6">
+                            <div className="relative w-full md:w-80 group">
+                                <FiSearch className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                 <input 
-                                    type="text" 
-                                    placeholder="Pesquisar por nome, email ou username..." 
-                                    className="bg-zinc-100 border-2 border-transparent p-3 pl-12 rounded-lg w-full focus:bg-white focus:border-red-500 transition-all outline-none" 
-                                    value={pesquisa} 
-                                    onChange={e => setPesquisa(e.target.value)} 
+                                    type="text"
+                                    placeholder="Pesquisar por nome, email ou username..."
+                                    value={pesquisa}
+                                    onChange={e => setPesquisa(e.target.value)}
+                                    className="bg-zinc-100 border-2 border-transparent text-gray-700 p-3 pl-12 rounded-lg w-full focus:bg-white focus:border-red-500 transition-all outline-none"
                                 />
                             </div>
-                            <div className="relative w-full md:w-auto group">
-                                <FiFilter className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                <select 
-                                    className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 pl-12 rounded-lg w-full md:w-48 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none" 
-                                    value={filtroStatus} 
-                                    onChange={e => setFiltroStatus(e.target.value)}
-                                >
-                                    <option value="">Todos os Status</option>
-                                    <option value="ativo">Ativo</option>
-                                    <option value="inativo">Inativo</option>
-                                </select>
-                            </div>
-                            <div className="relative w-full md:w-auto group">
-                                <FiFilter className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                <select 
-                                    className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 pl-12 rounded-lg w-full md:w-48 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none" 
-                                    value={filtroFuncao} 
-                                    onChange={e => setFiltroFuncao(e.target.value)}
-                                >
-                                    <option value="">Todas as Funções</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="tecnico">Técnico</option>
-                                    <option value="usuario">Usuário</option>
-                                </select>
-                            </div>
-                            <div className="relative w-full md:w-auto group">
-                                <select 
-                                    value={itemsPerPage} 
-                                    onChange={e => {
-                                        setItemsPerPage(Number(e.target.value));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 rounded-lg w-full md:w-32 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none"
-                                >
-                                    <option value={5}>5 por página</option>
-                                    <option value={10}>10 por página</option>
-                                    <option value={20}>20 por página</option>
-                                    <option value={50}>50 por página</option>
-                                </select>
+
+                            <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+                                <div className="relative w-full md:w-auto group">
+                                    <FiFilter className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <select 
+                                        className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 pl-12 rounded-lg w-full md:w-48 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none" 
+                                        value={filtroStatus} 
+                                        onChange={e => setFiltroStatus(e.target.value)}
+                                    >
+                                        <option value="">Todos os Status</option>
+                                        <option value="ativo">Ativo</option>
+                                        <option value="inativo">Inativo</option>
+                                    </select>
+                                </div>
+                                <div className="relative w-full md:w-auto group">
+                                    <FiFilter className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <select 
+                                        className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 pl-12 rounded-lg w-full md:w-48 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none" 
+                                        value={filtroFuncao} 
+                                        onChange={e => setFiltroFuncao(e.target.value)}
+                                    >
+                                        <option value="">Todas as Funções</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="tecnico">Técnico</option>
+                                        <option value="usuario">Usuário</option>
+                                    </select>
+                                </div>
+                                <div className="relative w-full md:w-auto group">
+                                    <select 
+                                        value={itemsPerPage} 
+                                        onChange={e => {
+                                            setItemsPerPage(Number(e.target.value));
+                                            setCurrentPage(1);
+                                        }}
+                                        className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 rounded-lg w-full md:w-32 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none"
+                                    >
+                                        <option value={5}>5 por página</option>
+                                        <option value={10}>10 por página</option>
+                                        <option value={20}>20 por página</option>
+                                        <option value={50}>50 por página</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -573,147 +822,109 @@ export default function GerenciarUsuarios() {
                                     )) : (
                                         <motion.tr>
                                             <td colSpan="7" className="text-center py-12 text-gray-500">
-                                                <FiInbox className="mx-auto text-3xl mb-2" />
-                                                Nenhum usuário encontrado.
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <FiInbox size={40} className="text-gray-300 mb-2" />
+                                                    <p className="text-lg font-semibold">Nenhum usuário encontrado</p>
+                                                    <p className="text-sm">Ajuste seus filtros ou termos de pesquisa e tente novamente.</p>
+                                                </div>
                                             </td>
                                         </motion.tr>
                                     )}
                                 </tbody>
                             </motion.table>
-                        </div>
+                            
+                            {/* Visualização para Mobile (Opcional, mas boa prática) */}
+                            <div className="md:hidden space-y-4">
+                                {currentItems.length > 0 ? currentItems.map((usuario, index) => (
+                                    <motion.div 
+                                        variants={itemVariants} 
+                                        key={`mobile-${usuario.id}-${index}`}
+                                        initial="hidden"
+                                        animate="show"
+                                        className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200"
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-bold text-lg text-gray-800">{usuario.nome}</p>
+                                                <p className="text-sm text-gray-500">{usuario.email}</p>
+                                            </div>
+                                            <StatusBadge status={usuario.status} />
+                                        </div>
+                                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                                            <FuncaoBadge funcao={usuario.funcao} />
+                                            <div className="flex gap-2">
+                                                {usuario.funcao === 'tecnico' && (
+                                                    <motion.button 
+                                                        onClick={() => setViewingUser({ ...usuario })}
+                                                        className="p-1 text-gray-400 hover:text-blue-600"
+                                                    >
+                                                        <FiInfo size={20} />
+                                                    </motion.button>
+                                                )}
+                                                <motion.button 
+                                                    onClick={() => setEditingUser({ ...usuario })}
+                                                    className="p-1 text-gray-400 hover:text-blue-600"
+                                                >
+                                                    <FiEdit size={20} />
+                                                </motion.button>
+                                                <motion.button 
+                                                    onClick={() => setUserToToggle(usuario)}
+                                                    className={`p-1 ${usuario.status === 'ativo' ? 'text-gray-400 hover:text-red-600' : 'text-gray-400 hover:text-green-600'}`}
+                                                >
+                                                    {usuario.status === 'ativo' ? <FiUserX size={20} /> : <FiUserCheck size={20} />}
+                                                </motion.button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )) : (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <FiInbox size={40} className="text-gray-300 mb-2" />
+                                            <p className="text-lg font-semibold">Nenhum usuário encontrado</p>
+                                            <p className="text-sm">Ajuste seus filtros ou termos de pesquisa.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
+                        </div>
+                        
+                        {/* Paginação */}
                         {totalPages > 1 && (
                             <Paginacao 
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                onPageChange={setCurrentPage}
+                                currentPage={currentPage} 
+                                totalPages={totalPages} 
+                                onPageChange={setCurrentPage} 
                             />
                         )}
+                        
                     </motion.div>
                 </motion.div>
-                <AnimatePresence>
-                    {(editingUser || userToToggle || viewingUser) && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-                            {viewingUser && <TechnicianInfoModal user={viewingUser} onClose={() => setViewingUser(null)} />}
-                            {editingUser && (
-                                <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h3 className="font-bold text-xl text-gray-800">Editar Usuário</h3>
-                                            <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-700 p-1 rounded-full">
-                                                <FiX />
-                                            </button>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-600 mb-1 block">Nome</label>
-                                                <div className="w-full bg-gray-100 text-gray-700 p-3 rounded-lg border border-gray-200 font-semibold">
-                                                    {editingUser.nome}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-600 mb-1 block">Email</label>
-                                                <div className="w-full bg-gray-100 text-gray-700 p-3 rounded-lg border border-gray-200 font-semibold">
-                                                    {editingUser.email}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-600 mb-1 block">Função</label>
-                                                <select 
-                                                    value={editingUser.funcao} 
-                                                    onChange={e => setEditingUser({ ...editingUser, funcao: e.target.value })} 
-                                                    className="w-full bg-zinc-100 border-2 border-transparent p-3 rounded-lg appearance-none focus:outline-none focus:bg-white focus:border-red-500"
-                                                >
-                                                    <option value="admin">Admin</option>
-                                                    <option value="tecnico">Técnico</option>
-                                                    <option value="usuario">Usuário</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="text-sm font-medium text-gray-600 mb-1 block">Especialidade</label>
-                                                <input 
-                                                    type="text"
-                                                    value={editingUser.especialidade || ''}
-                                                    onChange={e => setEditingUser({ ...editingUser, especialidade: e.target.value })}
-                                                    placeholder="Opcional - apenas para técnicos"
-                                                    className="w-full bg-zinc-100 border-2 border-transparent p-3 rounded-lg focus:outline-none focus:bg-white focus:border-red-500"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3">
-                                        <motion.button 
-                                            type="button" 
-                                            onClick={() => setEditingUser(null)} 
-                                            whileHover={{ scale: 1.05 }} 
-                                            whileTap={{ scale: 0.95 }}
-                                            className="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
-                                        >
-                                            Cancelar
-                                        </motion.button>
-                                        <motion.button 
-                                            type="button" 
-                                            onClick={handleSave} 
-                                            disabled={actionLoading}
-                                            whileHover={{ scale: 1.05 }} 
-                                            whileTap={{ scale: 0.95 }}
-                                            className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-wait"
-                                        >
-                                            {actionLoading ? <Spinner /> : <FiCheckCircle size={18} />}
-                                            <span className="ml-2">{actionLoading ? 'Salvando...' : 'Salvar Alterações'}</span>
-                                        </motion.button>
-                                    </div>
-                                </motion.div>
-                            )}
-                            {userToToggle && (
-                                <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
-                                    <div className="p-6">
-                                        <div className="flex justify-between items-start mb-6">
-                                            <FiAlertTriangle size={24} className={`text-${userToToggle.status === 'ativo' ? 'red' : 'green'}-500 mr-3 inline-block`} />
-                                            <h3 className="font-bold text-xl text-gray-800 flex-1">
-                                                {userToToggle.status === 'ativo' ? 'Inativar Usuário' : 'Ativar Usuário'}
-                                            </h3>
-                                            <button onClick={() => setUserToToggle(null)} className="text-gray-400 hover:text-gray-700 p-1 rounded-full">
-                                                <FiX />
-                                            </button>
-                                        </div>
-                                        <p className="text-gray-600">
-                                            Tem certeza que deseja **{userToToggle.status === 'ativo' ? 'inativar' : 'ativar'}** o usuário **{userToToggle.nome}** ({userToToggle.username})?
-                                            {userToToggle.status === 'ativo' 
-                                                ? ' Ele perderá o acesso e não poderá ser atribuído a novos chamados.' 
-                                                : ' Ele voltará a ter acesso total ao sistema.'
-                                            }
-                                        </p>
-                                        <div className="mt-6 flex justify-end gap-3">
-                                            <motion.button 
-                                                type="button" 
-                                                onClick={() => setUserToToggle(null)} 
-                                                whileHover={{ scale: 1.05 }} 
-                                                whileTap={{ scale: 0.95 }}
-                                                className="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
-                                            >
-                                                Cancelar
-                                            </motion.button>
-                                            <motion.button 
-                                                type="button" 
-                                                onClick={handleToggleStatus} 
-                                                disabled={actionLoading}
-                                                whileHover={{ scale: 1.05 }} 
-                                                whileTap={{ scale: 0.95 }}
-                                                className={`px-4 py-2 ${userToToggle.status === 'ativo' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white font-semibold rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-wait`}
-                                            >
-                                                {actionLoading ? <Spinner /> : (userToToggle.status === 'ativo' ? <FiUserX size={18} /> : <FiUserCheck size={18} />)}
-                                                <span className="ml-2">{actionLoading ? 'Aguarde...' : (userToToggle.status === 'ativo' ? 'Confirmar Inativação' : 'Confirmar Ativação')}</span>
-                                            </motion.button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </motion.div>
-            <span className="hidden bg-red-100 text-red-600 bg-yellow-100 text-yellow-600 bg-green-100 text-green-600 bg-blue-100 text-blue-600 bg-orange-100 text-orange-600 bg-purple-100 text-purple-600"></span>
+            
+            {/* Modais */}
+            <AnimatePresence>
+                {viewingUser && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                        <TechnicianInfoModal user={viewingUser} onClose={() => setViewingUser(null)} />
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <EditUserModal 
+                editingUser={editingUser} 
+                setEditingUser={setEditingUser}
+                handleSave={handleSave}
+                especialidadesDisponiveis={especialidadesDisponiveis}
+                actionLoading={actionLoading}
+            />
+
+            <StatusToggleModal
+                userToToggle={userToToggle}
+                setUserToToggle={setUserToToggle}
+                handleToggleStatus={handleToggleStatus}
+                actionLoading={actionLoading}
+            />
         </div>
     );
 }

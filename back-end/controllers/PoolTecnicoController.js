@@ -23,18 +23,18 @@ class PoolTecnicoController {
     static async listarPorTecnico(req, res) {
         try {
             // Renomeado para id_tecnico para clareza
-            const { id_tecnico } = req.params; 
+            const { id_tecnico } = req.params;
 
             const poolTecnicos = await PoolTecnico.findAll({
                 where: { id_tecnico: id_tecnico },
                 include: [
                     // Inclui os dados do Pool para o frontend (ProfileInfo) renderizar
-                    { model: Pool, as: 'pool', attributes: ['id', 'titulo', 'status'] } 
+                    { model: Pool, as: 'pool', attributes: ['id', 'titulo', 'status'] }
                 ]
             });
 
             // Retorna array vazio se não houver associações (Status 200 OK)
-            res.json(poolTecnicos); 
+            res.json(poolTecnicos);
 
         } catch (err) {
             console.error("Erro ao buscar Pools por Técnico:", err);
@@ -131,6 +131,32 @@ class PoolTecnicoController {
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Erro ao remover associação Pool-Técnico.' });
+        }
+    }
+
+    static async listarPoolsDisponiveis(req, res) {
+        try {
+            const pools = await Pool.findAll({
+                attributes: ['titulo'], // Pega apenas o campo 'titulo'
+                where: {
+                    status: 'ativo' // Filtra apenas pools que estão ativas, se aplicável
+                },
+                order: [
+                    ['titulo', 'ASC'] // Ordena por título
+                ],
+                raw: true
+            });
+
+            const especialidades = pools.map(pool => pool.titulo);
+
+            res.status(200).json({
+                message: "Pools disponíveis listadas com sucesso.",
+                data: especialidades
+            });
+
+        } catch (err) {
+            console.error("Erro ao listar pools disponíveis:", err);
+            res.status(500).json({ message: 'Erro ao listar pools disponíveis.' });
         }
     }
 

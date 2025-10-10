@@ -10,6 +10,18 @@ const permitir = (perfisPermitidos) => (req, res, next) => {
     return autorizar.autorizacao(req.user, perfisPermitidos)(req, res, next);
 }
 
+// -------------------------------------------------------------
+// ROTA CORRIGIDA PARA O FRONTEND (LISTA DE ESPECIALIDADES/POOLS)
+// -------------------------------------------------------------
+router.get('/pools-disponiveis',
+    AuthMiddleware.verifyToken,
+    // Garante que apenas usuários autenticados (Admin ou Técnico) possam obter a lista
+    permitir(['admin', 'tecnico']), 
+    // Este método buscará os títulos da tabela 'Pool'
+    PoolTecnicoController.listarPoolsDisponiveis 
+);
+// -------------------------------------------------------------
+
 router.get('/',
     AuthMiddleware.verifyToken,
     permitir(['admin', 'tecnico']),
