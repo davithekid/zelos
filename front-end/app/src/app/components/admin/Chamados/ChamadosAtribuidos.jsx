@@ -5,10 +5,8 @@ import { FiFilter, FiEdit, FiX, FiPlus, FiSearch, FiAlertTriangle, FiCheckCircle
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import api from '../../../lib/api';
-
 import GerenciarFechamentos from '../GerenciarFechamento/GerenciarFechamento'; 
 
-// Mapeamento de classes para Tailwind para evitar a remoção de classes dinâmicas
 const tailwindColorMap = {
     red: { iconBg: 'bg-red-100/70', iconText: 'text-red-600', badgeBg: 'bg-red-100', badgeText: 'text-red-800', activeBorder: 'border-red-500' },
     yellow: { iconBg: 'bg-yellow-100/70', iconText: 'text-yellow-600', badgeBg: 'bg-yellow-100', badgeText: 'text-yellow-800', activeBorder: 'border-yellow-500' },
@@ -35,7 +33,6 @@ const StatusBadge = ({ status }) => {
     
     const { icon, colorKey } = config[statusLabel] || { icon: '?', colorKey: 'gray' };
     
-    // Usando o mapeamento corrigido
     const { badgeBg, badgeText } = tailwindColorMap[colorKey] || tailwindColorMap.gray;
     const colorClasses = `${badgeBg} ${badgeText}`;
 
@@ -58,7 +55,6 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
         clickClasses = "cursor-default";
     }
 
-    // Usando o mapeamento corrigido
     const colorConfig = tailwindColorMap[color] || tailwindColorMap.red; 
 
     const activeClasses = isActive 
@@ -79,7 +75,6 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
             className={`${baseClasses} ${clickClasses} ${activeClasses} min-w-[200px]`}
             onClick={handleClick}
         >
-            {/* Usando classes do mapeamento */}
             <div className={`${colorConfig.iconText} p-2 rounded-full ${colorConfig.iconBg} w-fit mb-3`}>
                 {icon}
             </div>
@@ -256,14 +251,48 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
         setCurrentPage(1);
     }, [filtroStatus, pesquisa]);
 
+    const tecnicosOcupadosIds = useMemo(() => {
+        const ocupados = chamados
+            .filter(c => c.status === 'em andamento' && c.tecnico_id)
+            .map(c => c.tecnico_id);
+        return [...new Set(ocupados)];
+    }, [chamados]);
+
+    const tecnicosDisponiveisParaAtribuicao = useMemo(() => {
+        return tecnicos.filter(t => !tecnicosOcupadosIds.includes(t.id));
+    }, [tecnicos, tecnicosOcupadosIds]);
+
     const handleSave = async () => {
         if (!editingTicket) return;
         setActionLoading(true);
+
+        const newTecnicoId = editingTicket.tecnico_id ? parseInt(editingTicket.tecnico_id) : null;
+        const currentTecnicoId = editingTicket.tecnico ? editingTicket.tecnico.id : null;
+        const newStatus = editingTicket.status;
+
+        if (newTecnicoId && newTecnicoId !== currentTecnicoId) {
+            if (tecnicosOcupadosIds.includes(newTecnicoId)) {
+                const isTechnicianCurrentlyWorkingOnThisTicket = currentTecnicoId === newTecnicoId && newStatus === 'em andamento';
+
+                if (!isTechnicianCurrentlyWorkingOnThisTicket) {
+                    toast.error('O técnico já possui um chamado em andamento e não pode receber outro.');
+                    setActionLoading(false);
+                    return;
+                }
+            }
+        }
+        if (newStatus === 'em andamento' && !newTecnicoId) {
+            toast.error('Para colocar o chamado "Em Andamento", um técnico deve ser atribuído.');
+            setActionLoading(false);
+            return;
+        }
+
+
         try {
             await api.patch(`/chamados/${editingTicket.id}`, {
                 titulo: editingTicket.titulo,
-                tecnico_id: editingTicket.tecnico_id || null,
-                status: editingTicket.status
+                tecnico_id: newTecnicoId,
+                status: newStatus
             });
             await fetchChamadosData();
             fetchCounts(); 
@@ -439,7 +468,6 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
     return (
         <div className="p-4 sm:p-6 lg:p-8 font-sans">
             <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto">
-                {/* Alterado para grid-cols-3, removendo o espaço do 4º card de pedidos */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-6 mb-8">
                     <ReportCard 
                         title="Todos os Chamados"
@@ -508,10 +536,25 @@ export default function TabelaChamados({ setActiveTab: originalSetActiveTab, fun
                                             <div className="space-y-4">
                                                 <div>
                                                     <label className="text-sm font-medium text-gray-600 mb-1 block">Técnico</label>
-                                                    <select value={editingTicket.tecnico_id || ''} onChange={e => setEditingTicket({ ...editingTicket, tecnico_id: e.target.value })} className="w-full bg-zinc-100 border-2 border-transparent p-3 rounded-lg appearance-none focus:outline-none focus:bg-white focus:border-red-500">
+                                                    <select 
+                                                        value={editingTicket.tecnico_id || ''} 
+                                                        onChange={e => setEditingTicket({ ...editingTicket, tecnico_id: e.target.value })} 
+                                                        className="w-full bg-zinc-100 border-2 border-transparent p-3 rounded-lg appearance-none focus:outline-none focus:bg-white focus:border-red-500"
+                                                    >
                                                         <option value="">Não atribuído</option>
-                                                        {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nome}</option>)}
+                                                        {tecnicosDisponiveisParaAtribuicao.map(t => (
+                                                            <option key={t.id} value={t.id}>{t.nome}</option>
+                                                        ))}
+                                                        
+                                                        {editingTicket.tecnico_id && tecnicosOcupadosIds.includes(editingTicket.tecnico_id) && (
+                                                             <option key={editingTicket.tecnico_id} value={editingTicket.tecnico_id} className="bg-yellow-50 font-semibold text-yellow-800">
+                                                                {editingTicket.tecnico.nome} (Atualmente Atribuído)
+                                                             </option>
+                                                        )}
                                                     </select>
+                                                    {editingTicket.tecnico_id && tecnicosOcupadosIds.includes(editingTicket.tecnico_id) && (
+                                                         <p className="text-xs text-yellow-600 mt-1">Este técnico já está em outro chamado em andamento.</p>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <label className="text-sm font-medium text-gray-600 mb-1 block">Status</label>
