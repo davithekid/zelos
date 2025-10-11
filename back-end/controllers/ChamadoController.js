@@ -103,22 +103,18 @@ class ChamadoController {
 
             const img_url = req.file ? `/uploads/${req.file.filename}` : null;
 
-            // validação dos campos que são sempre obrigatórios
             if (!titulo || !descricao || !pool_id) {
                 return res.status(400).json({ message: 'Campos obrigatórios faltando: Título, Descrição e Tipo de Solicitação.' });
             }
 
 
-            // só executa as validações de patrimônio se ele for fornecido
             if (numero_patrimonio && numero_patrimonio.trim() !== '') {
 
-                // verifica se o equipamento existe
                 const equipamento = await Equipamento.findByPk(numero_patrimonio);
                 if (!equipamento) {
                     return res.status(404).json({ message: `Equipamento com o patrimônio "${numero_patrimonio}" não foi encontrado. Verifique o número ou deixe o campo em branco.` });
                 }
 
-                // verifica se já existe um chamado ativo para este equipamento
                 const chamadoExistente = await Chamado.findOne({
                     where: {
                         numero_patrimonio: numero_patrimonio,
@@ -130,7 +126,6 @@ class ChamadoController {
                 }
             }
 
-            // se numero_patrimonio for vazio salva como null
             const chamado = await Chamado.create({
                 titulo,
                 numero_patrimonio: numero_patrimonio || null,
@@ -161,20 +156,29 @@ class ChamadoController {
                 return res.status(400).json({ message: 'Não é possível atribuir um chamado que já foi concluído ou cancelado.' });
             }
 
-            // o objeto que será usado para a atualização
             let updateData = {
                 tecnico_id: null,
-                status: 'aberto' // se desatribuído, volta a ser 'aberto'
+                status: 'aberto' 
             };
 
-            // se um tecnico_id válido foi fornecido...
             if (tecnico_id) {
                 const tecnico = await Usuario.findByPk(tecnico_id);
                 if (!tecnico || tecnico.funcao !== 'tecnico') {
                     return res.status(400).json({ message: 'Atribuição falhou: o usuário selecionado não é um técnico.' });
                 }
 
-                // preparamos para atribuir e mudar o status
+                const chamadosAtivos = await Chamado.count({
+                    where: {
+                        tecnico_id: tecnico_id,
+                        status: { [Op.in]: ['aberto', 'em andamento'] }
+                    }
+                });
+
+                if (chamadosAtivos >= 1) {
+                    return res.status(400).json({
+                        message: `Atribuição falhou: O técnico ${tecnico.nome} já possui ${chamadosAtivos} chamado(s) ativo(s).`
+                    });
+                }
                 updateData.tecnico_id = tecnico_id;
                 updateData.status = 'em andamento';
             }
@@ -187,6 +191,7 @@ class ChamadoController {
             res.status(500).json({ message: "Erro ao atualizar chamado" });
         }
     }
+
 
     static async atualizar(req, res) {
         try {

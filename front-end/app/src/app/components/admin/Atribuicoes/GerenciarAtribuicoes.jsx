@@ -11,7 +11,7 @@ import {
 import api from '../../../lib/api';
 import { toast } from 'sonner';
 
-const ITEMS_PER_PAGE = 15; 
+const ITEMS_PER_PAGE = 15;
 const DEBOUNCE_DELAY = 300;
 const MAX_CHAMADOS_VISIVEIS = 3;
 
@@ -30,8 +30,7 @@ const StatCard = ({ icon, label, value, loading = false }) => (
         </div>
     </div>
 );
-
-const ChamadoPendenteCard = ({ chamado, tecnicos, onAtribuir, loading }) => (
+const ChamadoPendenteCard = ({ chamado, tecnicosDisponiveis, onAtribuir, loading }) => (
     <motion.div
         layout
         initial={{ opacity: 0, y: 20 }}
@@ -57,8 +56,10 @@ const ChamadoPendenteCard = ({ chamado, tecnicos, onAtribuir, loading }) => (
                     className="appearance-none w-full bg-slate-50 border border-slate-300/70 p-2.5 rounded-md text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     defaultValue=""
                 >
-                    <option value="" disabled>Atribuir a um técnico...</option>
-                    {tecnicos.map(t => (
+                    <option value="" disabled>
+                        {tecnicosDisponiveis.length > 0 ? 'Atribuir a um técnico...' : 'Nenhum técnico disponível'}
+                    </option>
+                    {tecnicosDisponiveis.map(t => (
                         <option key={t.id} value={t.id}>{t.nome}</option>
                     ))}
                 </select>
@@ -96,7 +97,6 @@ const ChamadoItem = ({ chamado, onDesatribuir, loading }) => (
         )}
     </motion.div>
 );
-
 const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const getInitials = (name = "") => {
@@ -106,6 +106,7 @@ const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
         }
         return name.substring(0, 2).toUpperCase();
     };
+    if (chamados.length === 0) return null;
 
     const chamadosVisiveis = isExpanded ? chamados : chamados.slice(0, MAX_CHAMADOS_VISIVEIS);
     const temChamadosOcultos = chamados.length > MAX_CHAMADOS_VISIVEIS;
@@ -114,16 +115,16 @@ const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
         <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm flex-shrink-0" title="Técnico Ocupado">
                         {getInitials(tecnico.nome)}
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-slate-800 truncate">{tecnico.nome}</h3>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-red-500 font-semibold">
                             {loading ? (
                                 <span className="inline-block h-4 w-20 bg-slate-200 rounded animate-pulse"></span>
                             ) : (
-                                `${chamados.length} chamado(s) atribuído(s)`
+                                `${chamados.length} chamado(s) ATIVO(s)`
                             )}
                         </p>
                     </div>
@@ -147,7 +148,7 @@ const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
                             <div className="h-4 bg-slate-200 rounded"></div>
                         </div>
                     ))
-                ) : chamados.length > 0 ? (
+                ) : (
                     <AnimatePresence>
                         {chamadosVisiveis.map(chamado => (
                             <ChamadoItem
@@ -166,7 +167,7 @@ const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
                             >
                                 <button
                                     onClick={() => setIsExpanded(true)}
-                                    className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center justify-center gap-1 w-full py-2 hover:bg-slate-50 rounded-md transition-colors"
+                                    className="text-xs text-red-600 hover:text-red-700 font-medium flex items-center justify-center gap-1 w-full py-2 hover:bg-slate-50 rounded-md transition-colors"
                                 >
                                     <FiList className="text-sm" />
                                     Ver mais {chamados.length - MAX_CHAMADOS_VISIVEIS} chamado(s)
@@ -190,12 +191,31 @@ const TecnicoCard = ({ tecnico, chamados, onDesatribuir, loading }) => {
                             </motion.div>
                         )}
                     </AnimatePresence>
-                ) : (
-                    <div className="text-center py-3 text-slate-400">
-                        <FiInbox className="mx-auto text-lg mb-1" />
-                        <p className="text-xs">Nenhum chamado atribuído</p>
-                    </div>
                 )}
+            </div>
+        </div>
+    );
+};
+
+const TecnicoLivreCard = ({ tecnico }) => {
+    const getInitials = (name = "") => {
+        const names = name.split(' ');
+        if (names.length > 1) {
+            return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    };
+
+    return (
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
+            <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm flex-shrink-0" title="Técnico Disponível">
+                    {getInitials(tecnico.nome)}
+                </div>
+                <div>
+                    <h3 className="font-bold text-slate-800 truncate">{tecnico.nome}</h3>
+                    <p className="text-sm text-green-500 font-semibold">Disponível para atribuição</p>
+                </div>
             </div>
         </div>
     );
@@ -318,7 +338,7 @@ const TecnicoCardSkeleton = () => (
 
 export default function PainelAtribuicaoAdmin() {
     const [tecnicos, setTecnicos] = useState([]);
-    const [chamados, setChamados] = useState([]); 
+    const [chamados, setChamados] = useState([]);
     const [pageLoading, setPageLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -332,14 +352,14 @@ export default function PainelAtribuicaoAdmin() {
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchTerm);
-            setPagination(prev => ({ ...prev, currentPage: 1 })); 
+            setPagination(prev => ({ ...prev, currentPage: 1 }));
         }, DEBOUNCE_DELAY);
 
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
     const fetchData = useCallback(async (page = 1, search = '') => {
-        if (!chamados.length && page === 1 && !search) { // Ajuste para só mostrar no carregamento inicial ou busca vazia
+        if (!chamados.length && page === 1 && !search) {
             setPageLoading(true);
         }
 
@@ -347,7 +367,7 @@ export default function PainelAtribuicaoAdmin() {
             const params = new URLSearchParams({
                 page: page.toString(),
                 limit: ITEMS_PER_PAGE.toString(),
-                ...(search && { search }) 
+                ...(search && { search })
             });
 
             const [chamadosRes, tecnicosRes] = await Promise.all([
@@ -360,6 +380,7 @@ export default function PainelAtribuicaoAdmin() {
                     id: c.id,
                     titulo: c.titulo,
                     tecnico: c.tecnico ? c.tecnico.nome : null,
+                    tecnico_id: c.tecnico ? c.tecnico.id : null,
                     status: c.status,
                     numero_patrimonio: c.numero_patrimonio
                 }))
@@ -375,19 +396,18 @@ export default function PainelAtribuicaoAdmin() {
                 const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
                 setPagination({
                     currentPage: page,
-                    totalPages: totalPages === 0 ? 1 : totalPages, 
+                    totalPages: totalPages === 0 ? 1 : totalPages,
                     totalItems
                 });
-                console.warn("Backend não forneceu objeto de paginação. Calculando no frontend. Considere ajustar o backend.");
             }
         } catch (error) {
             console.error("Erro ao buscar dados:", error);
             toast.error("Erro ao carregar dados. Tente novamente.");
-            setChamados([]); 
+            setChamados([]);
         } finally {
             setPageLoading(false);
         }
-    }, [chamados.length]); 
+    }, [chamados.length]);
 
     useEffect(() => {
         fetchData(pagination.currentPage, debouncedSearch);
@@ -399,14 +419,12 @@ export default function PainelAtribuicaoAdmin() {
         setActionLoading(chamadoId);
         try {
             await api.patch(`/chamados/${chamadoId}/atribuir`, { tecnico_id: tecnicoId });
-            setChamados(prev => prev.filter(c => c.id !== chamadoId));
-
-            const tecnicoNome = tecnicos.find(t => t.id === tecnicoId)?.nome;
+            const tecnicoNome = tecnicos.find(t => t.id === parseInt(tecnicoId))?.nome;
             toast.success(`Atribuído a ${tecnicoNome || 'um técnico'}!`);
             await fetchData(pagination.currentPage, debouncedSearch);
         } catch (error) {
-            console.error("Erro ao atribuir chamado:", error.response?.data || error);
-            toast.error("Falha ao atribuir chamado.");
+            const errorMessage = error.response?.data?.message || "Falha ao atribuir chamado.";
+            toast.error(errorMessage);
             await fetchData(pagination.currentPage, debouncedSearch);
         } finally {
             setActionLoading(null);
@@ -417,16 +435,12 @@ export default function PainelAtribuicaoAdmin() {
         setActionLoading(chamadoId);
         try {
             await api.patch(`/chamados/${chamadoId}/atribuir`, { tecnico_id: null });
-            setChamados(prev => prev.map(c =>
-                c.id === chamadoId ? { ...c, tecnico: null } : c
-            ));
-
             toast.success('Chamado retornado para a fila.');
-            await fetchData(pagination.currentPage, debouncedSearch); 
+            await fetchData(pagination.currentPage, debouncedSearch);
         } catch (error) {
             console.error("Erro ao desatribuir chamado:", error);
             toast.error("Falha ao desatribuir chamado.");
-            await fetchData(pagination.currentPage, debouncedSearch); 
+            await fetchData(pagination.currentPage, debouncedSearch);
         } finally {
             setActionLoading(null);
         }
@@ -437,11 +451,33 @@ export default function PainelAtribuicaoAdmin() {
             setPagination(prev => ({ ...prev, currentPage: newPage }));
         }
     };
-    const { pendentes, chamadosAtribuiveis } = useMemo(() => {
+
+    const { pendentes, chamadosAtribuiveis, tecnicosOcupadosIds } = useMemo(() => {
         const pendentes = chamados.filter(c => !c.tecnico && c.status === 'aberto');
         const atribuidosAtivos = chamados.filter(c => c.tecnico && (c.status === 'aberto' || c.status === 'em andamento'));
-        return { pendentes, chamadosAtribuiveis: atribuidosAtivos };
-    }, [chamados]); 
+        const chamadosPorTecnico = atribuidosAtivos.reduce((acc, chamado) => {
+            const tecnicoId = chamado.tecnico_id;
+            if (tecnicoId) {
+                acc[tecnicoId] = (acc[tecnicoId] || 0) + 1;
+            }
+            return acc;
+        }, {});
+
+        const tecnicosOcupadosIds = Object.keys(chamadosPorTecnico).filter(id => chamadosPorTecnico[id] >= 1).map(id => parseInt(id));
+
+        return {
+            pendentes,
+            chamadosAtribuiveis: atribuidosAtivos,
+            tecnicosOcupadosIds
+        };
+    }, [chamados]);
+    const tecnicosDisponiveis = useMemo(() => {
+        return tecnicos.filter(t => !tecnicosOcupadosIds.includes(t.id));
+    }, [tecnicos, tecnicosOcupadosIds]);
+    
+    const tecnicosOcupados = useMemo(() => {
+        return tecnicos.filter(t => tecnicosOcupadosIds.includes(t.id));
+    }, [tecnicos, tecnicosOcupadosIds]);
 
     const filteredPendentes = useMemo(() => {
         if (!debouncedSearch) return pendentes;
@@ -451,6 +487,7 @@ export default function PainelAtribuicaoAdmin() {
             (chamado.numero_patrimonio && chamado.numero_patrimonio.toLowerCase().includes(debouncedSearch.toLowerCase()))
         );
     }, [pendentes, debouncedSearch]);
+    
     if (pageLoading && !chamados.length) {
         return (
             <div className="flex flex-col justify-center items-center h-screen text-slate-500">
@@ -486,7 +523,7 @@ export default function PainelAtribuicaoAdmin() {
                         <StatCard
                             icon={<FiTrendingUp className="text-sky-600"/>}
                             label="Total de Chamados Ativos"
-                            value={pagination.totalItems} 
+                            value={pagination.totalItems}
                             loading={pageLoading}
                         />
                         <StatCard
@@ -525,7 +562,7 @@ export default function PainelAtribuicaoAdmin() {
                                             <ChamadoPendenteCard
                                                 key={chamado.id}
                                                 chamado={chamado}
-                                                tecnicos={tecnicos}
+                                                tecnicosDisponiveis={tecnicosDisponiveis}
                                                 onAtribuir={handleAtribuir}
                                                 loading={actionLoading === chamado.id}
                                             />
@@ -560,26 +597,32 @@ export default function PainelAtribuicaoAdmin() {
 
                     <aside className="space-y-6 lg:sticky lg:top-8">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-slate-800">Equipe Técnica</h2>
-                            <span className="text-sm text-slate-500">
-                                {tecnicos.length} técnico(s)
+                            <h2 className="text-xl font-bold text-slate-800">Técnicos Disponíveis</h2>
+                            <span className="text-sm text-green-600 font-semibold">
+                                {tecnicosDisponiveis.length} {tecnicosDisponiveis.length === 1 ? 'Livre' : 'Livres'}
                             </span>
                         </div>
-
+                        
                         {pageLoading ? (
                             [...Array(3)].map((_, index) => (
                                 <TecnicoCardSkeleton key={index} />
                             ))
                         ) : (
-                            tecnicos.map(tecnico => (
-                                <TecnicoCard
-                                    key={tecnico.id}
-                                    tecnico={tecnico}
-                                    chamados={chamadosAtribuiveis.filter(c => c.tecnico === tecnico.nome)}
-                                    onDesatribuir={handleDesatribuir}
-                                    loading={actionLoading !== null}
-                                />
-                            ))
+                            <>
+                                {tecnicosDisponiveis.length > 0 ? (
+                                    tecnicosDisponiveis.map(tecnico => (
+                                        <TecnicoLivreCard
+                                            key={tecnico.id}
+                                            tecnico={tecnico}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-slate-400 bg-white rounded-xl border border-dashed">
+                                        <FiUsers className="mx-auto text-3xl mb-2" />
+                                        <p className="text-sm">Nenhum técnico disponível no momento.</p>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </aside>
                 </div>
