@@ -3,53 +3,94 @@ import { motion } from 'framer-motion';
 import PainelTecnicoCards from './PainelTecnicoCards';
 import PainelAcoes from './PainelAcoes';
 import FaqTecnico from './FaqTecnico';
-import { FaTicketAlt, FaUserClock, FaRegListAlt } from 'react-icons/fa';
+import { 
+  FaTicketAlt, 
+  FaUserClock, 
+  FaRegListAlt, 
+  FaUserCog 
+} from 'react-icons/fa';
+import { HiExclamationTriangle } from 'react-icons/hi2';
+
+const PoolManagementBanner = ({ setActiveTab }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.5, delay: 0.2 }}
+    onClick={() => setActiveTab('perfil')}
+    role="alert"
+    className="w-full mx-auto p-6 bg-red-50 border-2 border-red-500 rounded-xl shadow-2xl text-red-800 text-left mb-12 cursor-pointer transition-all hover:bg-red-100"
+  >
+    <div className="flex items-center gap-4">
+      <HiExclamationTriangle size={36} className="text-red-600 flex-shrink-0" />
+      <div>
+        <h3 className="text-xl font-extrabold leading-snug text-red-700">
+          Atenção: Cadastre suas <span className="underline">Pools de Atuação</span>
+        </h3>
+        <p className="mt-2 text-base text-gray-800">
+          <span className="font-bold text-red-700">Ação necessária:</span> 
+          {' '}Para começar a receber chamados, é obrigatório cadastrar suas pools (grupos de atuação) na aba{' '}
+          <span className="font-semibold">Perfil</span> ou solicitar ajuda à Administração.
+        </p>
+      </div>
+    </div>
+  </motion.div>
+);
 
 export default function InicioTecnico({ setActiveTab }) {
   const painelTecnico = [
     {
-      icon: <FaTicketAlt size={40} className="text-red-600" />,
+      icon: <FaTicketAlt size={38} className="text-red-600" />,
       title: 'Novos Chamados',
       description: 'Visualize e atribua os chamados que acabaram de chegar na fila.',
     },
     {
-      icon: <FaRegListAlt size={40} className="text-red-600" />,
+      icon: <FaRegListAlt size={38} className="text-red-600" />,
       title: 'Meus Chamados Atribuídos',
       description: 'Acesse a lista de chamados que estão sob sua responsabilidade.',
     },
     {
-      icon: <FaUserClock size={40} className="text-red-600" />,
-      title: 'Histórico de chamados',
-      description: 'Visualize seus chamados concluídos.',
+      icon: <FaUserClock size={38} className="text-red-600" />,
+      title: 'Histórico de Chamados',
+      description: 'Consulte os chamados concluídos e suas informações anteriores.',
     },
   ];
 
   const faqsTecnico = [
     {
+      question: 'Gerenciamento das suas Pools de Atuação',
+      answer:
+        'Como técnico, você precisa estar vinculado às **Pools (Grupos de Atuação)** corretas para receber os chamados. Vá até a sua aba **Perfil** e localize a seção de Pools para se cadastrar ou solicite à Administração para realizar o vínculo.',
+    },
+    {
       question: 'Como atribuo um chamado para mim?',
-      answer: 'Na aba "Chamados abertos", clique no chamado desejado e use o botão "Enviar pedido".',
+      answer:
+        'Na aba "Chamados Abertos", clique no chamado desejado e use o botão "Enviar Pedido".',
     },
     {
       question: 'Como eu sei que um chamado foi atribuído?',
-      answer: 'Assim que a administração aprovar o pedido, o chamado estará disponível na aba "Chamados atribuídos."'
+      answer:
+        'Assim que a administração aprovar o pedido, o chamado estará disponível na aba "Chamados Atribuídos".',
     },
     {
       question: 'Como faço apontamentos?',
-      answer: 'Na aba "Chamados Atribuídos", você pode enviar seus apontamentos diretamente no chamado.'
+      answer:
+        'Na aba "Chamados Atribuídos", envie seus apontamentos diretamente no chamado correspondente.',
     },
     {
       question: 'Como fecho um chamado resolvido?',
-      answer: 'Na aba "Chamados Atribuídos", clique em "Detalhes" no chamado e selecione "Solicitar Fechamento". A solicitação será enviada para a administração.'
+      answer:
+        'Na aba "Chamados Atribuídos", clique em "Detalhes" e selecione "Solicitar Fechamento". A solicitação será enviada à Administração.',
     },
     {
       question: 'Como envio uma mensagem para a administração?',
-      answer: 'Na aba "Contato", você pode enviar sua mensagem, e nossa equipe irá respondê-la.'
+      answer:
+        'Na aba "Contato", envie sua mensagem e nossa equipe responderá o mais breve possível.',
     },
     {
       question: 'Como atribuo minhas especialidades no meu perfil?',
-      answer: 'Na aba "Perfil", clique no ícone de lápis no campo "Especialidade" para adicionar suas especialidades.'
-    }
-
+      answer:
+        'Na aba "Perfil", clique no ícone de lápis em "Especialidade" para adicionar suas áreas de atuação.',
+    },
   ];
 
   return (
@@ -58,16 +99,17 @@ export default function InicioTecnico({ setActiveTab }) {
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="max-w-4xl mx-auto flex-grow flex flex-col justify-center px-6 text-center"
         aria-label="Painel de Controle do Técnico"
+        className="max-w-4xl mx-auto flex-grow flex flex-col justify-center px-6 text-center"
       >
         <h1 className="text-5xl mt-20 font-extrabold text-red-600 mb-6 leading-tight drop-shadow-md">
           Painel do Técnico
         </h1>
         <p className="text-gray-700 text-lg italic mb-12 max-w-xl mx-auto">
-          Gerencie os chamados de forma eficiente, acompanhe suas tarefas e resolva os problemas com agilidade.
+          Gerencie seus chamados, acompanhe suas tarefas e resolva com agilidade e precisão.
         </p>
 
+        <PoolManagementBanner setActiveTab={setActiveTab} />
         <PainelTecnicoCards cards={painelTecnico} setActiveTab={setActiveTab} />
         <PainelAcoes setActiveTab={setActiveTab} />
       </motion.section>
