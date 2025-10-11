@@ -9,18 +9,11 @@ const autorizar = new Autorizar();
 const permitir = (perfisPermitidos) => (req, res, next) => {
     return autorizar.autorizacao(req.user, perfisPermitidos)(req, res, next);
 }
-
-// -------------------------------------------------------------
-// ROTA CORRIGIDA PARA O FRONTEND (LISTA DE ESPECIALIDADES/POOLS)
-// -------------------------------------------------------------
 router.get('/pools-disponiveis',
     AuthMiddleware.verifyToken,
-    // Garante que apenas usuários autenticados (Admin ou Técnico) possam obter a lista
     permitir(['admin', 'tecnico']), 
-    // Este método buscará os títulos da tabela 'Pool'
     PoolTecnicoController.listarPoolsDisponiveis 
 );
-// -------------------------------------------------------------
 
 router.get('/',
     AuthMiddleware.verifyToken,
@@ -34,22 +27,21 @@ router.get('/pool/:id_pool',
     PoolTecnicoController.listarPorPool
 );
 
-// NOVA ROTA: Listar pools de um técnico específico
 router.get('/tecnico/:id_tecnico',
     AuthMiddleware.verifyToken,
-    permitir(['admin', 'tecnico']), // Apenas admin e o próprio técnico podem ver
+    permitir(['admin', 'tecnico']), 
     PoolTecnicoController.listarPorTecnico
 );
 
 router.post('/',
     AuthMiddleware.verifyToken,
-    permitir(['admin', 'tecnico']), // Permite que o técnico se associe
+    permitir(['admin', 'tecnico']),
     PoolTecnicoController.associarTecnico
 );
 
 router.delete('/',
     AuthMiddleware.verifyToken,
-    permitir(['admin', 'tecnico']), // Permite que o técnico remova sua associação
+    permitir(['admin', 'tecnico']), 
     PoolTecnicoController.removerAssociacao
 );
 

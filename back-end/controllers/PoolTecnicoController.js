@@ -8,8 +8,8 @@ class PoolTecnicoController {
         try {
             const poolsTecnicos = await PoolTecnico.findAll({
                 include: [
-                    { model: Pool, attributes: ['id', 'titulo', 'status'] },
-                    { model: Usuario, attributes: ['id', 'nome', 'especialidade'] }
+                    { model: Pool, as: 'pool', attributes: ['id', 'titulo', 'status'] },
+                    { model: Usuario, as: 'tecnico', attributes: ['id', 'nome', 'funcao'] } 
                 ]
             });
             res.json(poolsTecnicos);
@@ -19,21 +19,17 @@ class PoolTecnicoController {
         }
     }
 
-    // NOVO MÉTODO: Lista Pools associados a um Técnico específico
     static async listarPorTecnico(req, res) {
         try {
-            // Renomeado para id_tecnico para clareza
             const { id_tecnico } = req.params;
 
             const poolTecnicos = await PoolTecnico.findAll({
                 where: { id_tecnico: id_tecnico },
                 include: [
-                    // Inclui os dados do Pool para o frontend (ProfileInfo) renderizar
                     { model: Pool, as: 'pool', attributes: ['id', 'titulo', 'status'] }
                 ]
             });
 
-            // Retorna array vazio se não houver associações (Status 200 OK)
             res.json(poolTecnicos);
 
         } catch (err) {
@@ -49,13 +45,11 @@ class PoolTecnicoController {
             const poolTecnicos = await PoolTecnico.findAll({
                 where: { id_pool: id_pool },
                 include: [
-                    { model: Usuario, attributes: ['id', 'nome', 'especialidade'] }
+                    { model: Usuario, attributes: ['id', 'nome', 'funcao'] }
                 ]
             });
 
             if (poolTecnicos.length === 0) {
-                // Ao invés de 404 para "nenhum técnico", é melhor retornar array vazio (200)
-                // O 404 deve ser usado quando o recurso (o Pool) não existe.
                 return res.json([]);
             }
 
@@ -137,12 +131,12 @@ class PoolTecnicoController {
     static async listarPoolsDisponiveis(req, res) {
         try {
             const pools = await Pool.findAll({
-                attributes: ['titulo'], // Pega apenas o campo 'titulo'
+                attributes: ['titulo'],
                 where: {
-                    status: 'ativo' // Filtra apenas pools que estão ativas, se aplicável
+                    status: 'ativo'
                 },
                 order: [
-                    ['titulo', 'ASC'] // Ordena por título
+                    ['titulo', 'ASC']
                 ],
                 raw: true
             });

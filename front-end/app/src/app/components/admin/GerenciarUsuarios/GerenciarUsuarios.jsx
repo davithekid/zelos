@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { FiFilter, FiEdit, FiX, FiPlus, FiSearch, FiAlertTriangle, FiCheckCircle, FiChevronDown, FiInbox, FiSlash, FiLoader, FiChevronLeft, FiChevronRight, FiUser, FiUserCheck, FiUserX, FiMail, FiBriefcase, FiRefreshCw, FiInfo } from 'react-icons/fi';
+import { FiFilter, FiEdit, FiX, FiPlus, FiSearch, FiCheckCircle, FiChevronDown, FiInbox, FiLoader, FiChevronLeft, FiChevronRight, FiUser, FiUserCheck, FiUserX, FiBriefcase, FiRefreshCw, FiInfo, FiServer } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import api from '../../../lib/api';
@@ -12,7 +12,6 @@ const capitalize = (s = '') => {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Mapeamento de cores para evitar problemas de purga do Tailwind CSS
 const colorMap = {
     green: { bg: 'bg-green-100', text: 'text-green-800' },
     red: { bg: 'bg-red-100', text: 'text-red-800' },
@@ -40,7 +39,7 @@ const StatusBadge = ({ status }) => {
 const FuncaoBadge = ({ funcao }) => {
     const funcaoLabel = capitalize(funcao);
     const config = {
-        'Admin': { color: 'purple' }, // Mudei para 'purple' para combinar com o ReportCard
+        'Admin': { color: 'purple' },
         'Tecnico': { color: 'blue' },
         'Usuario': { color: 'green' },
     };
@@ -54,10 +53,142 @@ const FuncaoBadge = ({ funcao }) => {
     );
 };
 
+const PoolBadge = ({ poolTitle }) => {
+    const poolLabel = capitalize(poolTitle);
+    const { bg, text } = colorMap.blue;
+
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>
+            <FiServer size={12} /> {poolLabel}
+        </span>
+    );
+};
+
+
 const Spinner = () => <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />;
 
-// --- MODAL DE INFORMAÇÕES DO TÉCNICO ---
-const TechnicianInfoModal = ({ user, onClose }) => {
+
+const ManageTechnicianPoolsModal = ({ user, onClose, onUpdateTechnicianPools, actionLoading, setActionLoading }) => {
+    const [allPools, setAllPools] = useState([]);
+    const [associatedPools, setAssociatedPools] = useState([]);
+    const [poolsLoading, setPoolsLoading] = useState(true);
+    const isTechnician = user?.funcao === 'tecnico';
+
+    const fetchPoolsData = useCallback(async () => {
+        if (!isTechnician) return;
+
+        setPoolsLoading(true);
+        try {
+            const [allPoolsResponse, associatedPoolsResponse] = await Promise.all([
+                api.get('/pools?status=ativo'),
+                api.get(`/pool-tecnico/tecnico/${user.id}`)
+            ]);
+
+            setAllPools(allPoolsResponse.data);
+            setAssociatedPools(associatedPoolsResponse.data);
+
+        } catch (err) {
+            console.error('Erro ao buscar pools:', err);
+            toast.error("Falha ao carregar a lista de pools.");
+            setAssociatedPools([]);
+            setAllPools([]);
+        } finally {
+            setPoolsLoading(false);
+        }
+    }, [user.id, isTechnician]);
+
+    useEffect(() => {
+        fetchPoolsData();
+    }, [fetchPoolsData]);
+
+    const associatedPoolIds = useMemo(() => associatedPools.map(pt => pt.id_pool), [associatedPools]);
+
+    const handleTogglePool = async (poolId, isAssociated) => {
+        setActionLoading(true);
+        try {
+            if (isAssociated) {
+                await api.delete('/pool-tecnico', { data: { id_pool: poolId, id_tecnico: user.id } });
+                toast.success(`Pool removido do técnico.`);
+            } else {
+                await api.post('/pool-tecnico', { id_pool: poolId, id_tecnico: user.id });
+                toast.success(`Pool adicionado ao técnico.`);
+            }
+            
+            await fetchPoolsData(); 
+            
+            const updatedPoolsResponse = await api.get(`/pool-tecnico/tecnico/${user.id}`);
+            onUpdateTechnicianPools(user.id, updatedPoolsResponse.data);
+
+        } catch (error) {
+            console.error(`Erro ao ${isAssociated ? 'remover' : 'adicionar'} Pool:`, error);
+            toast.error(error.response?.data?.message || `Falha na atualização do Pool.`);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    if (!user || !isTechnician) return null;
+
+    return (
+        <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-6">
+                <div className="flex justify-between items-center mb-6 border-b pb-4">
+                    <h3 className="font-bold text-xl text-blue-600 flex items-center gap-2">
+                        <FiServer size={20} /> Gerenciar Pools de {user.nome}
+                    </h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1 rounded-full">
+                        <FiX size={20} />
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-600">Selecione os Pools Técnicos que o usuário **{user.username}** pode atuar.</p>
+                    
+                    {poolsLoading ? (
+                        <div className="flex justify-center items-center h-20"><FiLoader className="animate-spin text-2xl text-red-600" /></div>
+                    ) : (
+                        <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                            {allPools.length > 0 ? (
+                                allPools.map(pool => {
+                                    const isChecked = associatedPoolIds.includes(pool.id);
+                                    return (
+                                        <label key={pool.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg shadow-sm cursor-pointer hover:bg-gray-100 transition-colors border border-gray-200">
+                                            <span className="font-medium text-gray-800">{capitalize(pool.titulo)}</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={() => handleTogglePool(pool.id, isChecked)}
+                                                className="w-5 h-5 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                disabled={actionLoading}
+                                            />
+                                        </label>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-center p-4 bg-yellow-50 rounded-lg text-yellow-800">Nenhum Pool Ativo encontrado.</div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                <motion.button 
+                    type="button" 
+                    onClick={onClose} 
+                    whileHover={{ scale: 1.05 }} 
+                    whileTap={{ scale: 0.95 }}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-colors"
+                    disabled={actionLoading}
+                >
+                    Fechar
+                </motion.button>
+            </div>
+        </motion.div>
+    );
+};
+
+
+const TechnicianInfoModal = ({ user, pools, onClose }) => {
     if (!user) return null;
 
     const data = [
@@ -66,7 +197,13 @@ const TechnicianInfoModal = ({ user, onClose }) => {
         { label: 'Email', value: user.email },
         { label: 'Função', value: <FuncaoBadge funcao={user.funcao} /> },
         { label: 'Status', value: <StatusBadge status={user.status} /> },
-        { label: 'POOL_TECNICO (Especialidade)', value: user.especialidade || 'Nenhuma especialidade definida' },
+        { 
+            label: 'Pools de Atuação', 
+            value: pools && pools.length > 0 
+                ? pools.map(pt => <PoolBadge key={pt.id} poolTitle={pt.pool.titulo} />)
+                : <span className='text-gray-500 italic text-sm'>Nenhuma pool atribuída.</span>,
+            isPools: true
+        },
     ];
 
     return (
@@ -85,10 +222,7 @@ const TechnicianInfoModal = ({ user, onClose }) => {
                     {data.map((item, index) => (
                         <div key={index} className="flex flex-col text-left">
                             <span className="text-sm font-medium text-gray-500">{item.label}</span>
-                            <div className="text-gray-800 font-semibold mt-0.5">{item.value}</div>
-                            {item.label === 'POOL_TECNICO (Especialidade)' && (
-                                <p className="text-xs text-gray-400 italic mt-1">Foco principal de atuação.</p>
-                            )}
+                            <div className={`text-gray-800 font-semibold mt-0.5 ${item.isPools ? 'flex flex-wrap gap-2' : ''}`}>{item.value}</div>
                         </div>
                     ))}
                 </div>
@@ -108,8 +242,8 @@ const TechnicianInfoModal = ({ user, onClose }) => {
     );
 };
 
-// --- MODAL DE EDIÇÃO DE USUÁRIO ---
-const EditUserModal = ({ editingUser, setEditingUser, handleSave, especialidadesDisponiveis, actionLoading }) => {
+
+const EditUserModal = ({ editingUser, setEditingUser, handleSave, actionLoading }) => {
     const handleClose = () => setEditingUser(null);
     const isTechnician = editingUser?.funcao === 'tecnico';
 
@@ -135,7 +269,7 @@ const EditUserModal = ({ editingUser, setEditingUser, handleSave, especialidades
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-6 border-b pb-4">
                                 <h3 className="font-bold text-xl text-blue-600 flex items-center gap-2">
-                                    <FiEdit size={20} /> Editar Usuário: {editingUser.nome}
+                                    <FiEdit size={20} /> Editar Função: {editingUser.nome}
                                 </h3>
                                 <button onClick={handleClose} className="text-gray-400 hover:text-gray-700 p-1 rounded-full">
                                     <FiX size={20} />
@@ -143,7 +277,6 @@ const EditUserModal = ({ editingUser, setEditingUser, handleSave, especialidades
                             </div>
 
                             <form className="space-y-4">
-                                {/* Campo Função */}
                                 <div>
                                     <label htmlFor="funcao" className="block text-sm font-medium text-gray-700 mb-1">Função</label>
                                     <div className="relative">
@@ -151,7 +284,7 @@ const EditUserModal = ({ editingUser, setEditingUser, handleSave, especialidades
                                         <select
                                             id="funcao"
                                             value={editingUser.funcao}
-                                            onChange={(e) => setEditingUser({ ...editingUser, funcao: e.target.value, especialidade: e.target.value !== 'tecnico' ? null : editingUser.especialidade })}
+                                            onChange={(e) => setEditingUser({ ...editingUser, funcao: e.target.value, especialidade: null })} 
                                             className="appearance-none w-full border border-gray-300 rounded-lg py-2 px-3 pr-10 text-gray-700 focus:ring-red-500 focus:border-red-500 transition-all"
                                             disabled={actionLoading}
                                         >
@@ -160,36 +293,8 @@ const EditUserModal = ({ editingUser, setEditingUser, handleSave, especialidades
                                             <option value="admin">Admin</option>
                                         </select>
                                     </div>
+                                    {isTechnician && <p className="text-xs text-gray-400 mt-1 italic">Para gerenciar as Pools de Atuação, use o ícone <FiServer size={12} className="inline-block" /> na tabela.</p>}
                                 </div>
-
-                                {/* Campo Especialidade (POOL_TECNICO) - Visível apenas para Técnicos */}
-                                {isTechnician && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                    >
-                                        <label htmlFor="especialidade" className="block text-sm font-medium text-gray-700 mb-1">
-                                            Pool Técnico (Especialidade) <span className="text-xs text-gray-400 ml-1">(Opcional)</span>
-                                        </label>
-                                        <div className="relative">
-                                            <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                            <select
-                                                id="especialidade"
-                                                value={editingUser.especialidade || ''}
-                                                onChange={(e) => setEditingUser({ ...editingUser, especialidade: e.target.value })}
-                                                className="appearance-none w-full border border-gray-300 rounded-lg py-2 px-3 pr-10 text-gray-700 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                disabled={actionLoading}
-                                            >
-                                                <option value="">Sem Especialidade Definida</option>
-                                                {especialidadesDisponiveis.map(esp => (
-                                                    <option key={esp} value={esp}>{esp}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </motion.div>
-                                )}
                             </form>
                         </div>
 
@@ -223,7 +328,7 @@ const EditUserModal = ({ editingUser, setEditingUser, handleSave, especialidades
     );
 };
 
-// --- MODAL DE CONFIRMAÇÃO DE STATUS ---
+
 const StatusToggleModal = ({ userToToggle, setUserToToggle, handleToggleStatus, actionLoading }) => {
     if (!userToToggle) return null;
 
@@ -296,7 +401,7 @@ const StatusToggleModal = ({ userToToggle, setUserToToggle, handleToggleStatus, 
     );
 };
 
-// --- REPORT CARD ---
+
 const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, isClickable = true }) => {
     const baseClasses = "flex flex-col p-5 rounded-xl shadow-lg transition-all duration-300 transform bg-white";
     
@@ -338,7 +443,6 @@ const ReportCard = ({ title, count, icon, color, onClick, isActive, isLoading, i
     );
 };
 
-// --- PAGINAÇÃO ---
 const Paginacao = ({ currentPage, totalPages, onPageChange }) => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -419,20 +523,21 @@ const Paginacao = ({ currentPage, totalPages, onPageChange }) => {
     );
 };
 
-// --- COMPONENTE PRINCIPAL ---
+
 export default function GerenciarUsuarios() {
     const [usuarios, setUsuarios] = useState([]);
+    const [technicianPoolsMap, setTechnicianPoolsMap] = useState({}); 
+    const [chamadosEmAndamento, setChamadosEmAndamento] = useState([]); 
+    
     const [counts, setCounts] = useState({
-        todos: 0,
-        ativos: 0,
-        tecnicos: 0,
-        admins: 0,
+        todos: 0, ativos: 0, tecnicos: 0, admins: 0,
     });
     
     const [countsLoading, setCountsLoading] = useState(true);
     const [editingUser, setEditingUser] = useState(null);
     const [userToToggle, setUserToToggle] = useState(null);
     const [viewingUser, setViewingUser] = useState(null); 
+    const [managingPoolsUser, setManagingPoolsUser] = useState(null); 
     
     const [filtroStatus, setFiltroStatus] = useState('');
     const [filtroFuncao, setFiltroFuncao] = useState('');
@@ -443,27 +548,39 @@ export default function GerenciarUsuarios() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     
-    // Lista de especialidades (POOL_TECNICO) para o select.
-    const especialidadesDisponiveis = [
-        'Redes', 
-        'Hardware', 
-        'Software', 
-        'Infraestrutura', 
-        'Suporte N1', 
-        'Segurança'
-    ];
-
-    const fetchCounts = useCallback(async () => {
+    const fetchAllData = useCallback(async () => {
+        setPageLoading(true);
         setCountsLoading(true);
+
         try {
-            // NOTE: Em uma API real, seria mais performático ter um endpoint de /usuarios/counts
-            const usuariosRes = await api.get('/usuarios');
+            const [usuariosRes, chamadosRes, allPoolsRes] = await Promise.all([
+                 api.get('/usuarios'),
+                 api.get('/chamados'), 
+                 api.get('/pool-tecnico'), 
+            ]);
+
             const todosUsuarios = usuariosRes.data || [];
+            const todosChamados = chamadosRes.data || [];
+            const allPoolTecnico = allPoolsRes.data || [];
+
+            const chamadosAtivos = todosChamados.filter(c => c.status === 'em andamento');
+            setChamadosEmAndamento(chamadosAtivos);
+
+            const poolsMap = allPoolTecnico.reduce((acc, item) => {
+                if (!acc[item.id_tecnico]) {
+                    acc[item.id_tecnico] = [];
+                }
+                acc[item.id_tecnico].push(item);
+                return acc;
+            }, {});
+            setTechnicianPoolsMap(poolsMap);
+
 
             const ativosCount = todosUsuarios.filter(u => u.status === 'ativo').length;
             const tecnicosCount = todosUsuarios.filter(u => u.funcao === 'tecnico').length;
             const adminsCount = todosUsuarios.filter(u => u.funcao === 'admin').length;
 
+            setUsuarios(todosUsuarios);
             setCounts({
                 todos: todosUsuarios.length,
                 ativos: ativosCount,
@@ -471,36 +588,48 @@ export default function GerenciarUsuarios() {
                 admins: adminsCount,
             });
         } catch (error) {
-            console.error("Erro ao buscar contagens:", error);
-            if (countsLoading) toast.error("Falha ao carregar dados de resumo."); 
-        } finally {
-            setCountsLoading(false);
-        }
-    }, [countsLoading]);
-
-    const fetchUsuariosData = async () => {
-        if (!usuarios.length) setPageLoading(true);
-        try {
-            const usuariosRes = await api.get('/usuarios');
-            setUsuarios(usuariosRes.data);
-        } catch (error) {
-            toast.error("Erro ao carregar dados da tabela.");
-            console.error("Erro ao buscar dados da tabela:", error);
+            toast.error("Erro ao carregar todos os dados.");
+            console.error("Erro ao buscar dados:", error);
+            setUsuarios([]);
+            setCounts({ todos: 0, ativos: 0, tecnicos: 0, admins: 0 });
         } finally {
             setPageLoading(false);
+            setCountsLoading(false);
         }
-    };
+    }, []);
 
     const handleRefresh = () => {
-        fetchUsuariosData();
-        fetchCounts();
+        fetchAllData();
         toast.info("A atualizar dados...");
     }
 
+    const handleUpdateTechnicianPools = useCallback((technicianId, newPoolsList) => {
+        setTechnicianPoolsMap(prevMap => ({
+            ...prevMap,
+            [technicianId]: newPoolsList,
+        }));
+
+        setManagingPoolsUser(prevUser => {
+            if (prevUser && prevUser.id === technicianId) {
+                return { ...prevUser }; 
+            }
+            return prevUser;
+        });
+
+        if (viewingUser && viewingUser.id === technicianId) {
+            setViewingUser(prevUser => {
+                 if (prevUser && prevUser.id === technicianId) {
+                    return { ...prevUser };
+                }
+                return prevUser;
+            });
+        }
+    }, [viewingUser]);
+
+
     useEffect(() => {
-        fetchUsuariosData();
-        fetchCounts();
-    }, []);
+        fetchAllData();
+    }, [fetchAllData]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -509,31 +638,20 @@ export default function GerenciarUsuarios() {
     const handleSave = async () => {
         if (!editingUser) return;
         
-        // O payload deve conter a função e, se for técnico, a especialidade.
         const payload = {
             funcao: editingUser.funcao,
+            especialidade: null 
         };
-
-        // Se o usuário for um técnico, enviamos a especialidade (POOL_TECNICO)
-        if (editingUser.funcao === 'tecnico') {
-            // Mantém o campo 'especialidade' para o backend
-            payload.especialidade = editingUser.especialidade || null; 
-        } else {
-            // Limpa a especialidade se a função não for 'tecnico'
-            payload.especialidade = null;
-        }
 
         setActionLoading(true);
         try {
-            // Supondo que o PATCH deve atualizar apenas a função e especialidade
             await api.patch(`/usuarios/${editingUser.id}`, payload);
             
-            await fetchUsuariosData();
-            fetchCounts();
+            await fetchAllData();
             setEditingUser(null);
-            toast.success('Usuário atualizado com sucesso!');
+            toast.success('Função do usuário atualizada com sucesso!');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Falha ao atualizar o usuário.');
+            toast.error(error.response?.data?.message || 'Falha ao atualizar a função.');
             console.error('Falha na atualização:', error);
         } finally {
             setActionLoading(false);
@@ -542,13 +660,20 @@ export default function GerenciarUsuarios() {
 
     const handleToggleStatus = async () => {
         if (!userToToggle) return;
+        
+        const isOccupied = userToToggle.funcao === 'tecnico' && userToToggle.status === 'ativo' && chamadosEmAndamento.some(c => c.tecnico_id === userToToggle.id);
+        
+        if (userToToggle.status === 'ativo' && isOccupied) {
+            toast.error(`Não é possível inativar o técnico ${userToToggle.nome} pois ele possui um chamado em andamento.`);
+            setUserToToggle(null);
+            return;
+        }
+
         setActionLoading(true);
         try {
             const novoStatus = userToToggle.status === 'ativo' ? 'inativo' : 'ativo';
-            // Supondo um endpoint de toggle de status específico
             await api.patch(`/usuarios/${userToToggle.id}/status`, { status: novoStatus });
-            await fetchUsuariosData();
-            fetchCounts();
+            await fetchAllData();
             setUserToToggle(null);
             toast.success(`Usuário ${novoStatus === 'ativo' ? 'ativado' : 'inativado'} com sucesso!`);
         } catch (error) {
@@ -603,9 +728,7 @@ export default function GerenciarUsuarios() {
                         color="red"
                         isLoading={countsLoading}
                         onClick={() => {
-                            setFiltroStatus('');
-                            setFiltroFuncao('');
-                            setCurrentPage(1);
+                            setFiltroStatus(''); setFiltroFuncao(''); setCurrentPage(1);
                         }}
                         isActive={filtroStatus === '' && filtroFuncao === ''}
                     />
@@ -616,9 +739,7 @@ export default function GerenciarUsuarios() {
                         color="green"
                         isLoading={countsLoading}
                         onClick={() => { 
-                            setFiltroStatus('ativo');
-                            setFiltroFuncao('');
-                            setCurrentPage(1);
+                            setFiltroStatus('ativo'); setFiltroFuncao(''); setCurrentPage(1);
                         }}
                         isActive={filtroStatus === 'ativo' && filtroFuncao === ''}
                     />
@@ -629,9 +750,7 @@ export default function GerenciarUsuarios() {
                         color="blue"
                         isLoading={countsLoading}
                         onClick={() => {
-                            setFiltroFuncao('tecnico');
-                            setFiltroStatus('');
-                            setCurrentPage(1);
+                            setFiltroFuncao('tecnico'); setFiltroStatus(''); setCurrentPage(1);
                         }}
                         isActive={filtroFuncao === 'tecnico' && filtroStatus === ''}
                     />
@@ -642,9 +761,7 @@ export default function GerenciarUsuarios() {
                         color="purple"
                         isLoading={countsLoading}
                         onClick={() => {
-                            setFiltroFuncao('admin');
-                            setFiltroStatus('');
-                            setCurrentPage(1);
+                            setFiltroFuncao('admin'); setFiltroStatus(''); setCurrentPage(1);
                         }}
                         isActive={filtroFuncao === 'admin' && filtroStatus === ''}
                     />
@@ -676,255 +793,188 @@ export default function GerenciarUsuarios() {
                                     Atualizar
                                 </motion.button>
                             
-                                {/* INÍCIO DA CORREÇÃO DO ERRO DE SINTAXE */}
                                 <motion.button 
                                     onClick={() => toast.info('Funcionalidade de Novo Usuário pendente')}
-                                    whileHover={{ scale: 1.05 }} 
+                                    whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="p-3 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-colors flex items-center gap-2"
+                                    className="p-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition-colors flex items-center gap-2"
                                 >
                                     <FiPlus size={18} />
                                     Novo Usuário
                                 </motion.button>
-                                {/* FIM DA CORREÇÃO */}
-
                             </div>
                         </header>
-                        
-                        {/* Seção de Filtros e Pesquisa */}
-                        <div className="flex flex-col md:flex-row flex-wrap justify-between gap-4 mb-6">
-                            <div className="relative w-full md:w-80 group">
-                                <FiSearch className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                <input 
-                                    type="text"
-                                    placeholder="Pesquisar por nome, email ou username..."
-                                    value={pesquisa}
-                                    onChange={e => setPesquisa(e.target.value)}
-                                    className="bg-zinc-100 border-2 border-transparent text-gray-700 p-3 pl-12 rounded-lg w-full focus:bg-white focus:border-red-500 transition-all outline-none"
-                                />
-                            </div>
 
-                            <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
-                                <div className="relative w-full md:w-auto group">
-                                    <FiFilter className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                    <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                    <select 
-                                        className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 pl-12 rounded-lg w-full md:w-48 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none" 
-                                        value={filtroStatus} 
-                                        onChange={e => setFiltroStatus(e.target.value)}
-                                    >
-                                        <option value="">Todos os Status</option>
-                                        <option value="ativo">Ativo</option>
-                                        <option value="inativo">Inativo</option>
-                                    </select>
-                                </div>
-                                <div className="relative w-full md:w-auto group">
-                                    <FiFilter className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                    <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                    <select 
-                                        className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 pl-12 rounded-lg w-full md:w-48 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none" 
-                                        value={filtroFuncao} 
-                                        onChange={e => setFiltroFuncao(e.target.value)}
-                                    >
-                                        <option value="">Todas as Funções</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="tecnico">Técnico</option>
-                                        <option value="usuario">Usuário</option>
-                                    </select>
-                                </div>
-                                <div className="relative w-full md:w-auto group">
-                                    <select 
-                                        value={itemsPerPage} 
-                                        onChange={e => {
-                                            setItemsPerPage(Number(e.target.value));
-                                            setCurrentPage(1);
-                                        }}
-                                        className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 rounded-lg w-full md:w-32 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none"
-                                    >
-                                        <option value={5}>5 por página</option>
-                                        <option value={10}>10 por página</option>
-                                        <option value={20}>20 por página</option>
-                                        <option value={50}>50 por página</option>
-                                    </select>
-                                </div>
+                        <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
+                            <div className="relative w-full md:flex-1 group">
+                                <FiSearch className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 group-focus-within:text-red-600 transition-colors" />
+                                <input type="text" placeholder="Pesquisar por nome, email ou username..." className="bg-zinc-100 border-2 border-transparent p-3 pl-12 rounded-lg w-full focus:bg-white focus:border-red-500 transition-all outline-none" value={pesquisa} onChange={e => setPesquisa(e.target.value)} />
+                            </div>
+                            <div className="relative w-full md:w-auto group">
+                                <FiFilter className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <select className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 pl-12 rounded-lg w-full md:w-40 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+                                    <option value="">Status (Todos)</option>
+                                    <option value="ativo">Ativo</option>
+                                    <option value="inativo">Inativo</option>
+                                </select>
+                            </div>
+                            <div className="relative w-full md:w-auto group">
+                                <FiBriefcase className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <FiChevronDown className="absolute top-1/2 right-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                <select className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 pl-12 rounded-lg w-full md:w-48 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none" value={filtroFuncao} onChange={e => setFiltroFuncao(e.target.value)}>
+                                    <option value="">Função (Todas)</option>
+                                    <option value="usuario">Usuário</option>
+                                    <option value="tecnico">Técnico</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div className="relative w-full md:w-auto group">
+                                <select 
+                                    value={itemsPerPage} 
+                                    onChange={e => {
+                                        setItemsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="bg-zinc-100 border-2 border-transparent font-medium text-gray-700 p-3 rounded-lg w-full md:w-32 appearance-none focus:bg-white focus:border-red-500 transition-all outline-none"
+                                >
+                                    <option value={5}>5 / pág</option>
+                                    <option value={10}>10 / pág</option>
+                                    <option value={20}>20 / pág</option>
+                                    <option value={50}>50 / pág</option>
+                                </select>
                             </div>
                         </div>
 
                         <div className="overflow-x-auto">
-                            <motion.table variants={containerVariants} initial="hidden" animate="show" className="w-full text-left table-auto hidden md:table">
+                            <motion.table variants={containerVariants} initial="hidden" animate="show" className="w-full text-left table-auto">
                                 <thead className="bg-gray-50/70 text-gray-600 text-xs uppercase">
                                     <tr>
                                         <th className="px-4 py-3 font-semibold">Nome</th>
                                         <th className="px-4 py-3 font-semibold">Username</th>
                                         <th className="px-4 py-3 font-semibold">Email</th>
                                         <th className="px-4 py-3 font-semibold">Função</th>
-                                        <th className="px-4 py-3 font-semibold">Especialidade</th>
                                         <th className="px-4 py-3 font-semibold">Status</th>
                                         <th className="px-4 py-3 font-semibold text-right">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {currentItems.length > 0 ? currentItems.map((usuario, index) => (
-                                        <motion.tr 
-                                            variants={itemVariants} 
-                                            key={`${usuario.id}-${index}`} 
-                                            className={`border-b border-gray-200/80 transition-colors ${usuario.funcao === 'tecnico' ? 'hover:bg-blue-50/50 cursor-pointer' : 'hover:bg-zinc-50/50'}`}
-                                            onClick={() => handleViewTechnician(usuario)}
-                                        >
-                                            <td className="px-4 py-4 font-medium text-gray-800">{usuario.nome}</td>
-                                            <td className="px-4 py-4 font-mono text-sm text-gray-500">{usuario.username}</td>
-                                            <td className="px-4 py-4 text-gray-600 flex items-center gap-2">
-                                                <FiMail className="text-gray-400" size={14} />
-                                                {usuario.email}
-                                            </td>
-                                            <td className="px-4 py-4"><FuncaoBadge funcao={usuario.funcao} /></td>
-                                            <td className="px-4 py-4 text-gray-600">{usuario.especialidade || 'N/A'}</td>
-                                            <td className="px-4 py-4"><StatusBadge status={usuario.status} /></td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex gap-2 justify-end">
-                                                    {usuario.funcao === 'tecnico' && (
+                                    {currentItems.length > 0 ? currentItems.map((user, index) => {
+                                        const isTechnician = user.funcao === 'tecnico';
+                                        return (
+                                            <motion.tr variants={itemVariants} key={`${user.id}-${index}`} className="border-b border-gray-200/80 hover:bg-zinc-50/50 transition-colors">
+                                                <td className="px-4 py-4 font-medium text-gray-800">{user.nome}</td>
+                                                <td className="px-4 py-4 text-gray-600">{user.username}</td>
+                                                <td className="px-4 py-4 text-gray-600">{user.email}</td>
+                                                <td className="px-4 py-4"><FuncaoBadge funcao={user.funcao} /></td>
+                                                <td className="px-4 py-4"><StatusBadge status={user.status} /></td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex gap-2 justify-end">
+                                                        {isTechnician && (
+                                                            <>
+                                                                <motion.button 
+                                                                    whileHover={{ scale: 1.1 }} 
+                                                                    whileTap={{ scale: 0.9 }} 
+                                                                    onClick={() => setManagingPoolsUser(user)} 
+                                                                    aria-label="Gerenciar Pools" 
+                                                                    title="Gerenciar Pools de Atuação"
+                                                                    className="p-2 cursor-pointer text-gray-400 hover:text-red-600"
+                                                                >
+                                                                    <FiServer size={18} />
+                                                                </motion.button>
+                                                                
+                                                                <motion.button 
+                                                                    whileHover={{ scale: 1.1 }} 
+                                                                    whileTap={{ scale: 0.9 }} 
+                                                                    onClick={() => handleViewTechnician(user)} 
+                                                                    aria-label="Ver detalhes do técnico" 
+                                                                    title="Ver detalhes do técnico"
+                                                                    className="p-2 cursor-pointer text-gray-400 hover:text-blue-600"
+                                                                >
+                                                                    <FiInfo size={18} />
+                                                                </motion.button>
+                                                            </>
+                                                        )}
                                                         <motion.button 
                                                             whileHover={{ scale: 1.1 }} 
                                                             whileTap={{ scale: 0.9 }} 
-                                                            onClick={(e) => { e.stopPropagation(); setViewingUser({ ...usuario }); }} // Impede a abertura duplicada do modal
-                                                            aria-label="Visualizar Detalhes" 
-                                                            className="p-2 cursor-pointer text-gray-400 hover:text-blue-600"
+                                                            onClick={() => setEditingUser({ ...user })} 
+                                                            aria-label="Editar" 
+                                                            title="Editar função"
+                                                            className="p-2 cursor-pointer text-gray-400 hover:text-red-600"
                                                         >
-                                                            <FiInfo size={18} />
+                                                            <FiEdit size={18} />
                                                         </motion.button>
-                                                    )}
-                                                    
-                                                    <motion.button 
-                                                        whileHover={{ scale: 1.1 }} 
-                                                        whileTap={{ scale: 0.9 }} 
-                                                        onClick={(e) => { e.stopPropagation(); setEditingUser({ ...usuario }); }} 
-                                                        aria-label="Editar" 
-                                                        className="p-2 cursor-pointer text-gray-400 hover:text-blue-600"
-                                                    >
-                                                        <FiEdit size={18} />
-                                                    </motion.button>
-                                                    <motion.button 
-                                                        whileHover={{ scale: 1.1 }} 
-                                                        whileTap={{ scale: 0.9 }} 
-                                                        onClick={(e) => { e.stopPropagation(); setUserToToggle(usuario); }} 
-                                                        aria-label={usuario.status === 'ativo' ? 'Inativar' : 'Ativar'} 
-                                                        className={`p-2 cursor-pointer ${
-                                                            usuario.status === 'ativo' 
-                                                                ? 'text-gray-400 hover:text-red-600' 
-                                                                : 'text-gray-400 hover:text-green-600'
-                                                        }`}
-                                                    >
-                                                        {usuario.status === 'ativo' ? <FiUserX size={18} /> : <FiUserCheck size={18} />}
-                                                    </motion.button>
-                                                </div>
-                                            </td>
-                                        </motion.tr>
-                                    )) : (
-                                        <motion.tr>
-                                            <td colSpan="7" className="text-center py-12 text-gray-500">
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <FiInbox size={40} className="text-gray-300 mb-2" />
-                                                    <p className="text-lg font-semibold">Nenhum usuário encontrado</p>
-                                                    <p className="text-sm">Ajuste seus filtros ou termos de pesquisa e tente novamente.</p>
-                                                </div>
-                                            </td>
-                                        </motion.tr>
+                                                        <motion.button 
+                                                            whileHover={{ scale: 1.1 }} 
+                                                            whileTap={{ scale: 0.9 }} 
+                                                            onClick={() => setUserToToggle(user)} 
+                                                            aria-label={user.status === 'ativo' ? 'Inativar' : 'Ativar'} 
+                                                            title={user.status === 'ativo' ? 'Inativar usuário' : 'Ativar usuário'}
+                                                            className={`p-2 cursor-pointer ${user.status === 'ativo' ? 'text-green-500 hover:text-green-700' : 'text-red-500 hover:text-red-700'}`}
+                                                        >
+                                                            {user.status === 'ativo' ? <FiUserX size={18} /> : <FiUserCheck size={18} />}
+                                                        </motion.button>
+                                                    </div>
+                                                </td>
+                                            </motion.tr>
+                                        )
+                                    }) : (
+                                        <motion.tr><td colSpan="6" className="text-center py-12 text-gray-500"><FiInbox className="mx-auto text-3xl mb-2" />Nenhum usuário encontrado.</td></motion.tr>
                                     )}
                                 </tbody>
                             </motion.table>
-                            
-                            {/* Visualização para Mobile (Opcional, mas boa prática) */}
-                            <div className="md:hidden space-y-4">
-                                {currentItems.length > 0 ? currentItems.map((usuario, index) => (
-                                    <motion.div 
-                                        variants={itemVariants} 
-                                        key={`mobile-${usuario.id}-${index}`}
-                                        initial="hidden"
-                                        animate="show"
-                                        className="bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200"
-                                    >
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-bold text-lg text-gray-800">{usuario.nome}</p>
-                                                <p className="text-sm text-gray-500">{usuario.email}</p>
-                                            </div>
-                                            <StatusBadge status={usuario.status} />
-                                        </div>
-                                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
-                                            <FuncaoBadge funcao={usuario.funcao} />
-                                            <div className="flex gap-2">
-                                                {usuario.funcao === 'tecnico' && (
-                                                    <motion.button 
-                                                        onClick={() => setViewingUser({ ...usuario })}
-                                                        className="p-1 text-gray-400 hover:text-blue-600"
-                                                    >
-                                                        <FiInfo size={20} />
-                                                    </motion.button>
-                                                )}
-                                                <motion.button 
-                                                    onClick={() => setEditingUser({ ...usuario })}
-                                                    className="p-1 text-gray-400 hover:text-blue-600"
-                                                >
-                                                    <FiEdit size={20} />
-                                                </motion.button>
-                                                <motion.button 
-                                                    onClick={() => setUserToToggle(usuario)}
-                                                    className={`p-1 ${usuario.status === 'ativo' ? 'text-gray-400 hover:text-red-600' : 'text-gray-400 hover:text-green-600'}`}
-                                                >
-                                                    {usuario.status === 'ativo' ? <FiUserX size={20} /> : <FiUserCheck size={20} />}
-                                                </motion.button>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )) : (
-                                    <div className="text-center py-12 text-gray-500">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <FiInbox size={40} className="text-gray-300 mb-2" />
-                                            <p className="text-lg font-semibold">Nenhum usuário encontrado</p>
-                                            <p className="text-sm">Ajuste seus filtros ou termos de pesquisa.</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
                         </div>
-                        
-                        {/* Paginação */}
+
                         {totalPages > 1 && (
                             <Paginacao 
-                                currentPage={currentPage} 
-                                totalPages={totalPages} 
-                                onPageChange={setCurrentPage} 
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={setCurrentPage}
                             />
                         )}
-                        
                     </motion.div>
                 </motion.div>
+
+                <AnimatePresence>
+                    {viewingUser && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+                            <TechnicianInfoModal 
+                                user={viewingUser} 
+                                pools={technicianPoolsMap[viewingUser.id]}
+                                onClose={() => setViewingUser(null)} 
+                            />
+                        </motion.div>
+                    )}
+
+                    {managingPoolsUser && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+                            <ManageTechnicianPoolsModal 
+                                user={managingPoolsUser}
+                                onClose={() => setManagingPoolsUser(null)}
+                                onUpdateTechnicianPools={handleUpdateTechnicianPools}
+                                actionLoading={actionLoading}
+                                setActionLoading={setActionLoading}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <EditUserModal 
+                    editingUser={editingUser}
+                    setEditingUser={setEditingUser}
+                    handleSave={handleSave}
+                    actionLoading={actionLoading}
+                />
+
+                <StatusToggleModal 
+                    userToToggle={userToToggle}
+                    setUserToToggle={setUserToToggle}
+                    handleToggleStatus={handleToggleStatus}
+                    actionLoading={actionLoading}
+                />
+
             </motion.div>
-            
-            {/* Modais */}
-            <AnimatePresence>
-                {viewingUser && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <TechnicianInfoModal user={viewingUser} onClose={() => setViewingUser(null)} />
-                    </div>
-                )}
-            </AnimatePresence>
-
-            <EditUserModal 
-                editingUser={editingUser} 
-                setEditingUser={setEditingUser}
-                handleSave={handleSave}
-                especialidadesDisponiveis={especialidadesDisponiveis}
-                actionLoading={actionLoading}
-            />
-
-            <StatusToggleModal
-                userToToggle={userToToggle}
-                setUserToToggle={setUserToToggle}
-                handleToggleStatus={handleToggleStatus}
-                actionLoading={actionLoading}
-            />
         </div>
     );
 }
