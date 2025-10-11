@@ -253,7 +253,7 @@ const EditUserModal = ({ editingUser, setEditingUser, handleSave, actionLoading 
         <AnimatePresence>
             {editingUser && (
                 <motion.div
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+                    className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center p-4 z-50"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -938,7 +938,7 @@ export default function GerenciarUsuarios() {
 
                 <AnimatePresence>
                     {viewingUser && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0  backdrop-blur-sm flex justify-center items-center z-50 p-4">
                             <TechnicianInfoModal 
                                 user={viewingUser} 
                                 pools={technicianPoolsMap[viewingUser.id]}
@@ -948,7 +948,7 @@ export default function GerenciarUsuarios() {
                     )}
 
                     {managingPoolsUser && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 backdrop-blur-sm flex justify-center items-center z-50 p-4">
                             <ManageTechnicianPoolsModal 
                                 user={managingPoolsUser}
                                 onClose={() => setManagingPoolsUser(null)}
