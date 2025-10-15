@@ -20,7 +20,6 @@ import GerenciarPatrimonios from '../GerenciasPatrimonios/GerenciarPatrimonios';
 import GerenciarUsuarios from '../GerenciarUsuarios/GerenciarUsuarios';
 import Apontamentos from '../Apontamentos/Apontamentos';
 
-// ✅ Import Dialog do shadcn/ui
 import {
     Dialog,
     DialogContent,
@@ -36,12 +35,9 @@ export default function Dashboard() {
     const [funcionario, setFuncionario] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [notifications, setNotifications] = useState([]);
-    // Estado de controle para o bloqueio
     const [hasActiveChamado, setHasActiveChamado] = useState(false);
     const [showDialog, setShowDialog] = useState(false);
     const router = useRouter();
-
-    // 🔑 Autenticação
     useEffect(() => {
         const token = Cookies.get('token');
         if (token) {
@@ -59,28 +55,19 @@ export default function Dashboard() {
         setIsLoading(false);
     }, [router]);
 
-    // 🔎 CORREÇÃO: Verifica se o técnico tem chamado em andamento
     useEffect(() => {
-        // Só verifica se for um técnico e se o ID estiver disponível
         if (!funcionario?.id || funcionario.funcao !== 'tecnico') return;
 
         const verificarChamadoAtivo = async () => {
             try {
-                // ✅ CHAMADA CORRIGIDA: Espera-se que a API filtre por tecnico_id
                 const response = await api.get(`/chamados?tecnico_id=${funcionario.id}`);
-                
-                // ✅ FOCO CORRIGIDO: Apenas 'em andamento' deve bloquear o técnico.
                 const STATUS_BLOQUEIO = ['em andamento', 'andamento']; 
 
                 const ativos = response.data?.filter(
                     (chamado) =>
-                        // Garante que a comparação é feita corretamente
                         chamado.tecnico_id === funcionario.id && 
                         STATUS_BLOQUEIO.includes(chamado.status?.toLowerCase())
                 );
-                
-                // Se o backend estiver retornando todos os chamados, esse filtro será crucial.
-                // Mas a lógica ideal é que o backend filtre.
                 setHasActiveChamado(ativos.length > 0);
 
             } catch (error) {
@@ -90,14 +77,11 @@ export default function Dashboard() {
         };
 
         verificarChamadoAtivo();
-
-        // ⏱ Adiciona intervalo para verificar periodicamente (a cada 10s)
         const intervalId = setInterval(verificarChamadoAtivo, 10000); 
         return () => clearInterval(intervalId);
         
     }, [funcionario]);
 
-    // 🔔 Notificações
     useEffect(() => {
         if (!funcionario) return;
         const fetchNotifications = async () => {
@@ -152,10 +136,7 @@ export default function Dashboard() {
     }
 
     if (!funcionario) return null;
-
-    // 🧠 Controle de navegação (bloqueia técnico para aba de Chamados Abertos/Pool)
     const handleChangeTab = (tab) => {
-        // Bloqueia apenas se a aba for 'gerenciar' (que parece ser o pool de chamados abertos)
         const isBlockedTab = tab === 'gerenciar'; 
         
         if (
@@ -166,8 +147,6 @@ export default function Dashboard() {
             setShowDialog(true);
             return; // Impede navegação
         }
-        // Se a aba for 'abrir' (para ele criar um chamado), permitimos,
-        // pois a regra geralmente é sobre pegar chamados do pool, não criar.
         setActiveTab(tab);
     };
 
@@ -227,7 +206,6 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* 💬 Dialog de Bloqueio do ShadCN */}
             <Dialog open={showDialog} onOpenChange={setShowDialog}>
                 <DialogContent className="max-w-sm">
                     <DialogHeader>
@@ -241,7 +219,6 @@ export default function Dashboard() {
                         <Button 
                             onClick={() => {
                                 setShowDialog(false);
-                                // Redireciona para a lista de chamados já atribuídos
                                 handleChangeTab('atribuidos'); 
                             }}
                         >

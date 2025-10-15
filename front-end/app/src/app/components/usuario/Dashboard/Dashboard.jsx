@@ -16,10 +16,8 @@ import ProfileInfo from './ProfileInfo';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('inicio');
-  // autenticação
   const [funcionario, setFuncionario] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  // notificações
   const [notifications, setNotifications] = useState([]);
 
   const router = useRouter();

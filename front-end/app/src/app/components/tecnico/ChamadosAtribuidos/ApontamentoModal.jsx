@@ -37,7 +37,6 @@ export default function ApontamentoModal({ chamado, tecnicoId, onClose, onSucces
         }
         
         setErros(novosErros);
-        // Retorna 'true' se não houver erros
         return Object.keys(novosErros).length === 0;
     };
 

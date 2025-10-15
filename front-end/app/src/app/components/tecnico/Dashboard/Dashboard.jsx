@@ -15,7 +15,6 @@ import ChamadosAbertos from '../ChamadosAbertos/ChamadosAbertos';
 import ChamadosAtribuidos from '../ChamadosAtribuidos/ChamadosAtribuidos';
 import HistoricoChamados from '../HistoricoChamados/HistoricoChamados';
 
-// 📦 Importa o Dialog do shadcn/ui
 import {
   Dialog,
   DialogContent,
@@ -32,10 +31,9 @@ export default function DashboardTecnico() {
   const [isLoading, setIsLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [hasActiveChamado, setHasActiveChamado] = useState(false);
-  const [showDialog, setShowDialog] = useState(false); // 👈 controla o Dialog
+  const [showDialog, setShowDialog] = useState(false); 
   const router = useRouter();
 
-  // ✅ Verificação de autenticação
   useEffect(() => {
     const token = Cookies.get('token');
     if (token) {
@@ -58,7 +56,6 @@ export default function DashboardTecnico() {
     setIsLoading(false);
   }, [router]);
 
-  // 🔔 Busca notificações
   useEffect(() => {
     if (!funcionario) return;
 
@@ -76,7 +73,6 @@ export default function DashboardTecnico() {
     return () => clearInterval(intervalId);
   }, [funcionario]);
 
-  // 🔎 Verifica se o técnico já tem chamado em andamento
   useEffect(() => {
     if (!funcionario?.id) return;
 
@@ -92,7 +88,6 @@ export default function DashboardTecnico() {
     verificarChamadoAtivo();
   }, [funcionario]);
 
-  // 🧩 Utilitários
   const getInitials = (name = '') => name.split(' ').map(n => n[0]).join('').toUpperCase();
 
   const marcarComoLida = async (notificationId) => {
@@ -133,7 +128,6 @@ export default function DashboardTecnico() {
     return <div className="flex h-screen items-center justify-center">Verificando autenticação...</div>;
   }
 
-  // ✅ Função que controla qual conteúdo será exibido
   const renderContent = () => {
     switch (activeTab) {
       case 'inicio':
@@ -189,7 +183,6 @@ export default function DashboardTecnico() {
         </div>
       </div>
 
-      {/* 💬 Dialog do ShadCN */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
