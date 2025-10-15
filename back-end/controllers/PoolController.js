@@ -1,8 +1,6 @@
 import Pool from '../entities/Pool.js'
 
 class PoolController {
-
-    // listando pools
     static async listar(req, res) {
         try {
             const pools = await Pool.findAll();
@@ -12,7 +10,6 @@ class PoolController {
         }
     }
 
-    // buscar pool por id
     static async buscarPorId(req, res) {
         try {
             const { id } = req.params;
@@ -27,8 +24,6 @@ class PoolController {
         }
     }
 
-
-    // criar pool
     static async criar(req, res) {
         try {
             const { titulo, descricao, usuario_id, created_by, updated_by } = req.body;
@@ -39,7 +34,6 @@ class PoolController {
         }
     }
 
-    // função para aprovar ou rejeitar solicitação de pool (apenas admin)
     static async aprovarOuRejeitar(req, res) {
         try {
             const { id } = req.params;
@@ -71,7 +65,6 @@ class PoolController {
         }
     }
 
-    // deletar pool
     static async deletar(req, res) {
         try {
             const { id } = req.params;

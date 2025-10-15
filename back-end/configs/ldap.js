@@ -1,4 +1,3 @@
-//config/ldap.js
 import passport from 'passport';
 import LdapStrategy from 'passport-ldapauth';
 

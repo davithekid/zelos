@@ -7,9 +7,9 @@ import session from 'express-session';
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Apenas para simular __dirname no ES Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 // routes
 import usuarioRoutes from './routes/usuarioRoutes.js';
 import poolRoutes from './routes/poolRoutes.js';

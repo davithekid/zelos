@@ -29,7 +29,6 @@ class ChamadoController {
             const especialidadeTecnico = tecnico ? tecnico.especialidade : null;
             let whereClause = {
                 pool_id: { [Op.in]: poolIds },
-                // CORREÇÃO: Use 'em_andamento' se for o formato salvo no banco de dados.
                 status: { [Op.in]: ['aberto', 'em_andamento'] }
             };
 
@@ -68,7 +67,7 @@ class ChamadoController {
                     { model: Pool, as: 'pool' }
                 ],
                 where: whereClause,
-                order: [['criado_em', 'DESC']] // ordena pelos mais recentes
+                order: [['criado_em', 'DESC']] 
             });
             res.json(chamados);
         } catch (err) {

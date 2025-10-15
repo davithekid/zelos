@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 const jwtSecret = process.env.JWT_SECRET;
-import Usuario from '../entities/Usuario.js';
 
 class AuthController {
 

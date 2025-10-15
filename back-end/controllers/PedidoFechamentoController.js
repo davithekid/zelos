@@ -87,7 +87,7 @@ class PedidoFechamentoController {
                 pedido.status = 'aprovado';
                 await pedido.save({ transaction: t });
 
-            } else { // status === 'reprovado'
+            } else { 
                 await pedido.destroy({ transaction: t });
             }
 

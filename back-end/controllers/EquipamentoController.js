@@ -14,7 +14,6 @@ class EquipamentoController {
 
     static async criar(req, res) {
         try {
-            // Incluindo 'status' no desestruturamento
             const { patrimonio, sala, equipamento, status } = req.body;
             if (!patrimonio) {
                 return res.status(400).json({ message: "O número do patrimônio é obrigatório." });

@@ -1,5 +1,4 @@
 import Apontamento from '../entities/Apontamento.js'
-
 import Chamado from '../entities/Chamado.js';
 
 class ApontamentoController {
