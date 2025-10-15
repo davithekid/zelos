@@ -15,12 +15,24 @@ import ChamadosAbertos from '../ChamadosAbertos/ChamadosAbertos';
 import ChamadosAtribuidos from '../ChamadosAtribuidos/ChamadosAtribuidos';
 import HistoricoChamados from '../HistoricoChamados/HistoricoChamados';
 
+// 📦 Importa o Dialog do shadcn/ui
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+
 export default function DashboardTecnico() {
   const [activeTab, setActiveTab] = useState('inicio');
   const [funcionario, setFuncionario] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [hasActiveChamado, setHasActiveChamado] = useState(false);
+  const [showDialog, setShowDialog] = useState(false); // 👈 controla o Dialog
   const router = useRouter();
 
   // ✅ Verificação de autenticação
@@ -127,9 +139,8 @@ export default function DashboardTecnico() {
       case 'inicio':
         return <InicioTecnico setActiveTab={setActiveTab} />;
       case 'abertos':
-        // 🚫 Bloqueia o acesso a chamados abertos se houver chamado ativo
         if (hasActiveChamado) {
-          alert("⚠️ Você já possui um chamado em andamento. Finalize-o antes de abrir outro.");
+          setShowDialog(true);
           setActiveTab('inicio');
           return <InicioTecnico setActiveTab={setActiveTab} />;
         }
@@ -146,35 +157,52 @@ export default function DashboardTecnico() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+    <>
+      <div className="flex h-screen bg-gray-100 font-sans">
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          notifications={notifications}
-          marcarComoLida={marcarComoLida}
-          limparTodasNotificacoes={limparTodasNotificacoes}
-          unreadNotificationsCount={notifications.filter(n => !n.lida).length}
-          funcionario={funcionario}
-          getInitials={getInitials}
-        />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            notifications={notifications}
+            marcarComoLida={marcarComoLida}
+            limparTodasNotificacoes={limparTodasNotificacoes}
+            unreadNotificationsCount={notifications.filter(n => !n.lida).length}
+            funcionario={funcionario}
+            getInitials={getInitials}
+          />
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-            >
-              {renderContent()}
-            </motion.div>
-          </AnimatePresence>
-        </main>
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+              >
+                {renderContent()}
+              </motion.div>
+            </AnimatePresence>
+          </main>
+        </div>
       </div>
-    </div>
+
+      {/* 💬 Dialog do ShadCN */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Chamado em andamento</DialogTitle>
+            <DialogDescription>
+              Você já possui um chamado em andamento. Finalize-o antes de abrir ou visualizar novos chamados abertos.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button className={'bg-red-500 hover:bg-red-600 cursor-pointer'} onClick={() => setShowDialog(false)}>Entendido</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
