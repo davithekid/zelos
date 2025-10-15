@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Tag, User, Wrench, SprayCan, CircleHelp, FileImage, ClipboardCheck, Clock, Loader2 } from 'lucide-react';
-import api from '../../../lib/api'; 
+import api from '../../../app/lib/api'; 
 
 const statusConfig = {
   'aberto': { label: 'Aberto', classes: 'bg-blue-100 text-blue-800 border-blue-300' },

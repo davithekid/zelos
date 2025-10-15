@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FiFilter, FiEdit, FiX, FiPlus, FiSearch, FiCheckCircle, FiChevronDown, FiInbox, FiLoader, FiChevronLeft, FiChevronRight, FiUser, FiUserCheck, FiUserX, FiBriefcase, FiRefreshCw, FiInfo, FiServer } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import api from '../../../lib/api';
+import api from '../../../app/lib/api';
 
 const capitalize = (s = '') => {
     if (!s) return '';

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
-import api from '../../../lib/api';
+import api from '../../../app/lib/api';
 
 import Sidebar from './Slidebar';
 import Header from './Header';
@@ -14,11 +14,11 @@ import ProfileInfo from './ProfileInfo';
 import Inicio from '../Inicio/Inicio';
 import GerenciarChamados from '../Atribuicoes/GerenciarAtribuicoes';
 import ChamadosAtribuidos from '../Chamados/ChamadosAtribuidos';
-import Relatorio from '../Relatorios/Relatorios';
+import Relatorio from '../../blocks/Relatorios/Relatorios';
 import AbrirChamado from '../AbrirChamado/Chamado';
-import GerenciarPatrimonios from '../GerenciasPatrimonios/GerenciarPatrimonios';
-import GerenciarUsuarios from '../GerenciarUsuarios/GerenciarUsuarios';
-import Apontamentos from '../Apontamentos/Apontamentos';
+import GerenciarPatrimonios from '../../blocks/GerenciarPatrimonios/GerenciarPatrimonios';
+import GerenciarUsuarios from '../../blocks/GerenciarUsuarios/GerenciarUsuarios';
+import Apontamentos from '../../blocks/Apontamentos/Apontamentos';
 
 import {
     Dialog,

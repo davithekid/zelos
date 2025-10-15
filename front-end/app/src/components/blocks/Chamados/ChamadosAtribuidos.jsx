@@ -5,7 +5,7 @@ import { FiFilter, FiEdit, FiX, FiPlus, FiSearch, FiAlertTriangle, FiCheckCircle
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import api from '../../../lib/api';
-import GerenciarFechamentos from '../GerenciarFechamento/GerenciarFechamento'; 
+import GerenciarFechamentos from '../../../../components/blocks/GerenciarFechamento/GerenciarFechamento'; 
 
 const tailwindColorMap = {
     red: { iconBg: 'bg-red-100/70', iconText: 'text-red-600', badgeBg: 'bg-red-100', badgeText: 'text-red-800', activeBorder: 'border-red-500' },

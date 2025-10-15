@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PoolCard from './PoolCard';
 import PoolFiltros from './PoolFitros';
 import ChamadoDetalhesModal from './ChamadosDetalhesModal' 
-import api from '../../../lib/api';
+import api from '../../../app/lib/api';
 
 const statusConfig = {
   'aberto': { label: 'Aberto' },

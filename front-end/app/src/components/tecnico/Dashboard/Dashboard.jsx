@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 
-import api from '../../../lib/api';
+import api from '../../../app/lib/api';
 import Sidebar from './Slidebar';
 import Header from './Header';
 import ProfileInfo from './ProfileInfo';

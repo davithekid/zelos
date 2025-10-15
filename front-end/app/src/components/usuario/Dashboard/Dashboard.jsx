@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
-import api from '../../../lib/api';
+import api from '../../../app/lib/api';
 import Sidebar from './Slidebar';
 import Header from './Header';
 import Inicio from '../Inicio/Inicio';
 import Chamado from '../AbrirChamado/Chamado';
-import MeusChamados from '../MeusChamados/MinhasPools';
+import MeusChamados from '../../blocks/MeusChamados/MinhasPools';
 import InstrucoesRapidas from '../Instrucoes/page';
 import ProfileInfo from './ProfileInfo';
 
