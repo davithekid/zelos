@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -10,6 +9,8 @@ import api from '../../../lib/api';
 import ConfirmaModal from './ConfirmaModal';
 import { toast } from 'sonner';
 
+function capitalize(str = '') { return str.charAt(0).toUpperCase() + str.slice(1); }
+
 const formatarData = (dataString) => {
     if (!dataString) return 'Data indisponível';
     const options = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
@@ -18,6 +19,7 @@ const formatarData = (dataString) => {
 
 const ApontamentoCard = ({ apontamento }) => {
     const duracao = apontamento.fim ? `${Math.floor(apontamento.duracao / 60)}h ${apontamento.duracao % 60}min` : "Em andamento";
+    
     return (
         <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -40,6 +42,17 @@ const ApontamentoCard = ({ apontamento }) => {
     );
 };
 
+const InfoItem = ({ icon, label, value }) => (
+    <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 w-5 h-5 text-gray-400">{icon}</div>
+        <div>
+            <p className="font-semibold text-gray-800">{value}</p>
+            <p className="text-xs text-gray-500">{label}</p>
+        </div>
+    </div>
+);
+
+
 export default function ChamadoDetailView({ chamado, apontamentos = [], onAbrirApontamento }) {
     const [pedidoEnviado, setPedidoEnviado] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,10 +60,13 @@ export default function ChamadoDetailView({ chamado, apontamentos = [], onAbrirA
 
     useEffect(() => {
         if (!chamado?.id) return;
-        setPedidoEnviado(false);
+        
+        setPedidoEnviado(false); 
+        
         const verificarPedidoExistente = async () => {
             try {
                 const response = await api.get(`/pedidos-fechamento?chamado_id=${chamado.id}`);
+                
                 if (response.data && response.data.length > 0 && response.data.some(p => p.status === 'pendente')) {
                     setPedidoEnviado(true);
                 }
@@ -65,7 +81,7 @@ export default function ChamadoDetailView({ chamado, apontamentos = [], onAbrirA
         setIsSubmitting(true);
         try {
             await api.post('/pedidos-fechamento', { chamado_id: chamado.id });
-            setPedidoEnviado(true);
+            setPedidoEnviado(true); 
             toast.success("Pedido de fechamento enviado com sucesso!");
         } catch (error) {
             const errorMessage = error.response?.data?.message || "Não foi possível enviar o pedido.";
@@ -78,7 +94,8 @@ export default function ChamadoDetailView({ chamado, apontamentos = [], onAbrirA
 
     const usuarioNome = chamado.usuario?.nome || "Usuário não identificado";
     const localizacao = capitalize(chamado.pool?.titulo || "Não especificado");
-    const imagemUrl = chamado.img_url ? `http://localhost:3001${chamado.img_url}` : null;
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const imagemUrl = chamado.img_url ? `${API_BASE_URL}${chamado.img_url}` : null;
     const patrimonio = chamado.numero_patrimonio || 'Não informado';
 
     return (
@@ -103,7 +120,7 @@ export default function ChamadoDetailView({ chamado, apontamentos = [], onAbrirA
                                 <p className="font-bold text-gray-600">Patrimônio:</p>
                                 <p className="text-red-600 font-bold mt-1 text-base">{patrimonio}</p>
                             </div>
-                             <div>
+                            <div>
                                 <p className="font-bold text-gray-600">Descrição do Problema:</p>
                                 <p className="text-gray-700 leading-relaxed mt-1">{chamado.descricao}</p>
                             </div>
@@ -124,26 +141,37 @@ export default function ChamadoDetailView({ chamado, apontamentos = [], onAbrirA
                         )}
                     </div>
                 </div>
+                
                 {imagemUrl && (
-                  <div className="bg-white rounded-2xl shadow-subtle border p-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                          <PhotoIcon className="w-6 h-6 text-gray-500" /> Imagem Anexada
-                      </h3>
-                      <div className="mt-4 bg-gray-100 p-2 rounded-lg">
-                         <img src={imagemUrl} alt={`Anexo para ${chamado.titulo}`}
-                          className="w-full h-auto max-h-[70vh] object-contain rounded-md"
-                          loading="lazy" />
-                      </div>
-                  </div>
+                    <div className="bg-white rounded-2xl shadow-subtle border p-6">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                            <PhotoIcon className="w-6 h-6 text-gray-500" /> Imagem Anexada
+                        </h3>
+                        <div className="mt-4 bg-gray-100 p-2 rounded-lg">
+                           <img src={imagemUrl} alt={`Anexo para ${chamado.titulo}`}
+                           className="w-full h-auto max-h-[70vh] object-contain rounded-md"
+                           loading="lazy" />
+                        </div>
+                    </div>
                 )}
                 
                 <div className="sticky bottom-6 flex flex-col sm:flex-row justify-end gap-3 z-10">
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    <motion.button 
+                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         onClick={() => onAbrirApontamento(chamado)} 
-                        className="px-5 py-2.5 bg-red-600 text-white font-bold cursor-pointer rounded-lg shadow-lg hover:shadow-xl hover:bg-red-700 flex items-center justify-center gap-2 text-base transition-all">
+                        disabled={pedidoEnviado} // 👈 BLOQUEIO APLICADO AQUI
+                        className={`px-5 py-2.5 font-bold cursor-pointer rounded-lg shadow-lg flex items-center justify-center gap-2 text-base transition-all 
+                            ${pedidoEnviado 
+                                ? 'bg-gray-400 text-gray-800 cursor-not-allowed shadow-none' 
+                                : 'bg-red-600 text-white hover:shadow-xl hover:bg-red-700'}`
+                        }
+                    >
                         <PlusCircleIcon className="w-5 h-5"/> 
-                        <span>Criar Apontamento</span>
+                        <span>
+                            {pedidoEnviado ? 'Fechamento Solicitado' : 'Criar Apontamento'}
+                        </span>
                     </motion.button>
+                    
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         onClick={() => setIsConfirmModalOpen(true)}
                         disabled={pedidoEnviado || isSubmitting}
@@ -168,15 +196,3 @@ export default function ChamadoDetailView({ chamado, apontamentos = [], onAbrirA
         </>
     );
 }
-
-    const InfoItem = ({ icon, label, value }) => (
-    <div className="flex items-center gap-3">
-        <div className="flex-shrink-0 text-gray-400">{icon}</div>
-        <div>
-            <p className="font-semibold text-gray-800">{value}</p>
-            <p className="text-xs text-gray-500">{label}</p>
-        </div>
-    </div>
-);
-
-function capitalize(str = '') { return str.charAt(0).toUpperCase() + str.slice(1); }

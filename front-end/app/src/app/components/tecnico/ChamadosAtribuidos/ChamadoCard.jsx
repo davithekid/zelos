@@ -65,13 +65,7 @@ export default function ChamadoCard({ chamado, onVerDetalhes, onAbrirApontamento
                         <EyeIcon className="w-5 h-5" />
                         <span>Detalhes</span>
                     </button>
-                    <button 
-                        onClick={() => onAbrirApontamento(chamado)} 
-                        className="cursor-pointer flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-red-500 to-red-600 text-white font-semibold rounded-lg shadow shadow-red-500/20 hover:from-red-600 hover:to-red-700 transition-all text-sm"
-                    >
-                        <PlusCircleIcon className="w-5 h-5" />
-                        <span>Apontamento</span>
-                    </button>
+                
                 </div>
             </div>
         </motion.div>
