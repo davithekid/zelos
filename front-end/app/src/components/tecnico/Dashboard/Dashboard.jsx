@@ -11,9 +11,9 @@ import Sidebar from './Slidebar';
 import Header from './Header';
 import ProfileInfo from './ProfileInfo';
 import InicioTecnico from '../Inicio/InicioTecnico';
-import ChamadosAbertos from '../ChamadosAbertos/ChamadosAbertos';
-import ChamadosAtribuidos from '../ChamadosAtribuidos/ChamadosAtribuidos';
-import HistoricoChamados from '../HistoricoChamados/HistoricoChamados';
+import ChamadosAbertos from '@/components/blocks/ChamadosAbertos/ChamadosAbertos';
+import ChamadosAtribuidos from '@/components/blocks/ChamadosAtribuidos/ChamadosAtribuidos';
+import HistoricoChamados from '@/components/blocks/HistoricoChamados/HistoricoChamados';
 
 export default function DashboardTecnico() {
   const [activeTab, setActiveTab] = useState('inicio');

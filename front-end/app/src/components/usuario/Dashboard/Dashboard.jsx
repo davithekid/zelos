@@ -9,7 +9,7 @@ import api from '../../../lib/api';
 import Sidebar from './Slidebar';
 import Header from './Header';
 import Inicio from '../Inicio/Inicio';
-import Chamado from '../AbrirChamado/Chamado';
+import Chamado from '@/components/blocks/AbrirChamado/Chamado';
 import MeusChamados from '../../blocks/MeusChamados/MinhasPools';
 import InstrucoesRapidas from '../Instrucoes/page';
 import ProfileInfo from './ProfileInfo';
