@@ -6,6 +6,15 @@ import api from '../../../lib/api';
 import CardChamado from './CardChamado';
 import ModalAtribuicao from './ModalAtribuicao';
 import ModalImagem from './ModalImagem';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function ChamadosAbertos({ funcionario }) {
     const [chamadosAbertos, setChamadosAbertos] = useState([]);
@@ -14,6 +23,12 @@ export default function ChamadosAbertos({ funcionario }) {
     const [error, setError] = useState(null);
     const [modalAberto, setModalAberto] = useState(false);
     const [imagemModal, setImagemModal] = useState(null);
+
+    const [erroModal, setErroModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+    });
     
     const fetchData = async () => {
         if (!funcionario || !funcionario.id) return;
@@ -29,7 +44,6 @@ export default function ChamadosAbertos({ funcionario }) {
             setChamadosAbertos(chamadosResponse.data); 
             
         } catch (err) {
-            console.error("Erro ao buscar dados iniciais:", err);
             setError("Não foi possível carregar os dados. Tente atualizar a página.");
         } finally {
             setIsLoading(false);
@@ -42,7 +56,11 @@ export default function ChamadosAbertos({ funcionario }) {
 
     const handleAtribuir = async (chamadoId) => {
         if (!funcionario || !funcionario.id) {
-            alert("Erro: ID do técnico não encontrado.");
+            setErroModal({
+                isOpen: true,
+                title: "Erro de Autenticação",
+                message: "Não foi possível identificar seu ID de técnico. Por favor, faça login novamente.",
+            });
             return;
         }
 
@@ -51,8 +69,6 @@ export default function ChamadosAbertos({ funcionario }) {
                 tecnico_id: funcionario.id 
             });
             
-            const chamadoAtribuido = response.data;
-
             setChamadosAbertos(prevChamados => 
                 prevChamados.filter(c => c.id !== chamadoId) 
             );
@@ -60,14 +76,20 @@ export default function ChamadosAbertos({ funcionario }) {
             setModalAberto(true); 
             
         } catch (err) {
-            console.error("Erro ao atribuir chamado:", err);
             const errorMessage = err.response?.data?.message || "Não foi possível atribuir o chamado. Ele pode já ter sido atribuído a outro técnico.";
-            alert(errorMessage);
+            
+            setErroModal({
+                isOpen: true,
+                title: "Falha na Atribuição",
+                message: errorMessage,
+            });
         }
     };
 
     const abrirModalImagem = (url) => setImagemModal(url);
     const fecharModalImagem = () => setImagemModal(null);
+    
+    const fecharErroModal = () => setErroModal(prev => ({ ...prev, isOpen: false }));
 
     if (isLoading) return <div className="text-center p-10">Carregando chamados...</div>;
     if (error) return <div className="text-center p-10 text-red-600">{error}</div>;
@@ -99,7 +121,24 @@ export default function ChamadosAbertos({ funcionario }) {
                 aberto={modalAberto} 
                 onClose={() => setModalAberto(false)}
             />
+            
             <ModalImagem url={imagemModal} onClose={fecharModalImagem} />
+            
+            <Dialog open={erroModal.isOpen} onOpenChange={fecharErroModal}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-red-600 font-bold">{erroModal.title}</DialogTitle>
+                        <DialogDescription>
+                            {erroModal.message}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button type="button" onClick={fecharErroModal} className="bg-red-600 hover:bg-red-700">
+                            Entendido
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
