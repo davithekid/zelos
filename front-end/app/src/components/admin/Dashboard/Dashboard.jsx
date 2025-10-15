@@ -12,13 +12,13 @@ import Header from './Header';
 import ProfileInfo from './ProfileInfo';
 
 import Inicio from '../Inicio/Inicio';
-import GerenciarChamados from '../Atribuicoes/GerenciarAtribuicoes';
-import ChamadosAtribuidos from '../Chamados/ChamadosAtribuidos';
-import Relatorio from '../Relatorios/Relatorios';
-import AbrirChamado from '../AbrirChamado/Chamado';
-import GerenciarPatrimonios from '../GerenciasPatrimonios/GerenciarPatrimonios';
-import GerenciarUsuarios from '../GerenciarUsuarios/GerenciarUsuarios';
-import Apontamentos from '../Apontamentos/Apontamentos';
+import TabelaChamados from '@/components/blocks/Chamados/ChamadosAtribuidos';
+import PainelAtribuicaoAdmin from '@/components/blocks/Atribuicoes/GerenciarAtribuicoes';
+import Relatorio from '../../blocks/Relatorios/Relatorios';
+import Chamado from '@/components/blocks/AbrirChamado/Chamado';
+import GerenciarPatrimonios from '../../blocks/GerenciarPatrimonios/GerenciarPatrimonios';
+import GerenciarUsuarios from '../../blocks/GerenciarUsuarios/GerenciarUsuarios';
+import Apontamentos from '../../blocks/Apontamentos/Apontamentos';
 
 import {
     Dialog,
@@ -47,10 +47,10 @@ export default function Dashboard() {
             } catch (error) {
                 console.error('Token inválido, redirecionando:', error);
                 Cookies.remove('token');
-                router.push('/login');
+                router.push('/');
             }
         } else {
-            router.push('/login');
+            router.push('/');
         }
         setIsLoading(false);
     }, [router]);
@@ -155,13 +155,13 @@ export default function Dashboard() {
             case 'inicio':
                 return <Inicio setActiveTab={handleChangeTab} />;
             case 'abrir':
-                return <AbrirChamado funcionario={funcionario} />;
+                return <Chamado funcionario={funcionario} />;
             case 'gerenciar':
-                return <GerenciarChamados funcionario={funcionario} />;
+                return <PainelAtribuicaoAdmin funcionario={funcionario} />;
             case 'usuarios':
                 return <GerenciarUsuarios funcionario={funcionario} />;
             case 'atribuidos':
-                return <ChamadosAtribuidos funcionario={funcionario} setActiveTab={handleChangeTab} />;
+                return <TabelaChamados funcionario={funcionario} setActiveTab={handleChangeTab} />;
             case 'patrimonio':
                 return <GerenciarPatrimonios funcionario={funcionario} />;
             case 'apontamentos':

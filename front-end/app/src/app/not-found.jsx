@@ -7,8 +7,8 @@ import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 
-export default function Naoencontrada() {
-    const [redirectPath, setRedirectPath] = useState('/login');
+export default function NotFound() {
+    const [redirectPath, setRedirectPath] = useState('/');
     const [redirectLabel, setRedirectLabel] = useState('Ir para o Login');
     const router = useRouter();
 
@@ -33,13 +33,13 @@ export default function Naoencontrada() {
                             setRedirectLabel('Voltar à Página Inicial');
                             break;
                         default:
-                            setRedirectPath('/login');
+                            setRedirectPath('/');
                             setRedirectLabel('Ir para o Login');
                     }
                 }
             } catch (error) {
                 console.error("Token inválido na página 404, redirecionando para login:", error.message);
-                setRedirectPath('/login');
+                setRedirectPath('/');
                 setRedirectLabel('Ir para o Login');
             }
         }

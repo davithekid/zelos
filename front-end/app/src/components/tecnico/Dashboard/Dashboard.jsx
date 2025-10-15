@@ -11,9 +11,9 @@ import Sidebar from './Slidebar';
 import Header from './Header';
 import ProfileInfo from './ProfileInfo';
 import InicioTecnico from '../Inicio/InicioTecnico';
-import ChamadosAbertos from '../ChamadosAbertos/ChamadosAbertos';
-import ChamadosAtribuidos from '../ChamadosAtribuidos/ChamadosAtribuidos';
-import HistoricoChamados from '../HistoricoChamados/HistoricoChamados';
+import ChamadosAbertos from '@/components/blocks/ChamadosAbertos/ChamadosAbertos';
+import ChamadosAtribuidos from '@/components/blocks/ChamadosAtribuidos/ChamadosAtribuidos';
+import HistoricoChamados from '@/components/blocks/HistoricoChamados/HistoricoChamados';
 
 export default function DashboardTecnico() {
   const [activeTab, setActiveTab] = useState('inicio');
@@ -28,17 +28,17 @@ export default function DashboardTecnico() {
         const decodedToken = jwtDecode(token);
         if (decodedToken.funcao !== 'tecnico') {
           console.error("Acesso não autorizado para esta função.");
-          router.push('/login'); 
+          router.push('/'); 
           return;
         }
         setFuncionario(decodedToken);
       } catch (error) {
         console.error("Token inválido, redirecionando:", error);
         Cookies.remove('token');
-        router.push('/login');
+        router.push('/');
       }
     } else {
-      router.push('/login');
+      router.push('/');
     }
     setIsLoading(false);
   }, [router]);

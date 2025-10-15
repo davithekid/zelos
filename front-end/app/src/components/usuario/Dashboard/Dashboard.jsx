@@ -9,8 +9,8 @@ import api from '../../../lib/api';
 import Sidebar from './Slidebar';
 import Header from './Header';
 import Inicio from '../Inicio/Inicio';
-import Chamado from '../AbrirChamado/Chamado';
-import MeusChamados from '../MeusChamados/MinhasPools';
+import Chamado from '@/components/blocks/AbrirChamado/Chamado';
+import MeusChamados from '../../blocks/MeusChamados/MinhasPools';
 import InstrucoesRapidas from '../Instrucoes/page';
 import ProfileInfo from './ProfileInfo';
 
@@ -36,10 +36,10 @@ export default function Dashboard() {
       } catch (error) {
         console.error("Token inválido ou expirado, redirecionando:", error);
         Cookies.remove('token');
-        router.push('/login');
+        router.push('');
       }
     } else {
-      router.push('/login');
+      router.push('/');
     }
     setIsLoading(false);
   }, [router]);
