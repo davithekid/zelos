@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner'; 
-import api from '../../../app/lib/api';
+import api from '../../../lib/api';
 
 const StatCard = ({ icon, title, value, color }) => (
     <motion.div

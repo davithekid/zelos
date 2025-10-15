@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { FiBriefcase, FiUserCheck, FiServer } from 'react-icons/fi';
-import api from '../../../app/lib/api';
+import api from '../../../lib/api';
 
 const capitalize = (s = '') => {
   if (!s) return '';

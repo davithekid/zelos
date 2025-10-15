@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FiFilter, FiEdit, FiX, FiPlus, FiSearch, FiAlertTriangle, FiCheckCircle, FiChevronDown, FiInbox, FiSlash, FiLoader, FiChevronLeft, FiChevronRight, FiPackage, FiMonitor, FiMapPin, FiRefreshCw, FiTrash2} from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import api from '../../../app/lib/api'; 
+import api from '../../../lib/api'; 
 
 
 const STATUS_OPTIONS = [ 

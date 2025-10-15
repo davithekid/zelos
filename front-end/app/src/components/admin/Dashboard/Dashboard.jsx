@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
-import api from '../../../app/lib/api';
+import api from '../../../lib/api';
 
 import Sidebar from './Slidebar';
 import Header from './Header';
