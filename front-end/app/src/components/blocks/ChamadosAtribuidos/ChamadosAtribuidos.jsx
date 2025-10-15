@@ -66,7 +66,7 @@ export default function ChamadosAtribuidos({ funcionario }) {
     return (
         <div className="p-4 sm:p-6 h-full">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3 flex justify-center">
                     {selectedChamado && (
                         <motion.button
                             initial={{ opacity: 0, scale: 0.8 }}
@@ -79,7 +79,7 @@ export default function ChamadosAtribuidos({ funcionario }) {
                     )}
                     {selectedChamado ? 'Detalhes do Chamado' : 'Meus Chamados Atribuídos'}
                 </h1>
-                <p className="text-gray-500 mt-1">
+                <p className="text-gray-500 mt-1 flex justify-center">
                     {selectedChamado ? `Visualizando detalhes do chamado #${selectedChamado.id}` : 'Aqui estão os chamados que precisam da sua atenção.'}
                 </p>
             </div>
