@@ -6,7 +6,6 @@ import { FiInbox, FiCheck, FiX, FiLoader, FiAlertTriangle, FiCheckSquare, FiInfo
 import api from '../../../lib/api';
 import { toast } from 'sonner'; 
 
-// Função auxiliar para formatar datas (reutilizada do componente Apontamentos)
 const formatDateTime = (dateString) => {
     if (!dateString) return 'Em andamento';
     const date = new Date(dateString);
@@ -20,7 +19,6 @@ const formatDateTime = (dateString) => {
     });
 };
 
-// Componente para exibir um único apontamento dentro do modal
 const ApontamentoItem = ({ apontamento }) => {
     const inicio = formatDateTime(apontamento.comeco);
     const fim = formatDateTime(apontamento.fim);
@@ -57,7 +55,6 @@ const ApontamentoItem = ({ apontamento }) => {
     );
 }
 
-// Componente Modal de Detalhes
 function FechamentoDetalheModal({ pedido, onClose, onResponder, isLoading }) {
     if (!pedido) return null;
 
@@ -83,7 +80,6 @@ function FechamentoDetalheModal({ pedido, onClose, onResponder, isLoading }) {
                 </header>
 
                 <div className="p-6 overflow-y-auto flex-1">
-                    {/* Detalhes do Chamado */}
                     <section className="mb-6 pb-4 border-b border-gray-200">
                         <h4 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FiHash className="text-red-600" /> Chamado: {chamado.titulo}
@@ -95,7 +91,6 @@ function FechamentoDetalheModal({ pedido, onClose, onResponder, isLoading }) {
                         </div>
                     </section>
 
-                    {/* Lista de Apontamentos */}
                     <section>
                         <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <FiClock className="text-red-600" /> Apontamentos de Trabalho ({apontamentos.length})
@@ -114,7 +109,6 @@ function FechamentoDetalheModal({ pedido, onClose, onResponder, isLoading }) {
                     </section>
                 </div>
 
-                {/* Controles de Ação (Aprovar/Reprovar) */}
                 <footer className="p-4 bg-white border-t flex justify-end gap-3 sticky bottom-0 z-10">
                     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         onClick={handleReprovar}
@@ -134,12 +128,10 @@ function FechamentoDetalheModal({ pedido, onClose, onResponder, isLoading }) {
     );
 }
 
-
-// Componente Card principal (agora abre o modal de detalhes)
 const FechamentoCard = ({ pedido, onOpenDetails }) => (
     <motion.div
         layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -30 }}
-        onClick={() => onOpenDetails(pedido)} // Abre o modal ao clicar no card
+        onClick={() => onOpenDetails(pedido)} 
         className="bg-white p-5 rounded-xl shadow-subtle border border-green-200/80 flex items-center justify-between gap-4 cursor-pointer hover:shadow-lg transition-all"
     >
         <div className="flex-1 min-w-0">
@@ -166,14 +158,12 @@ export default function GerenciarFechamentos() {
     const [pageLoading, setPageLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     
-    // Estados para o Modal de Detalhes
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [selectedPedido, setSelectedPedido] = useState(null);
 
     const fetchPedidos = async () => {
         setPageLoading(true);
         try {
-            // Assumimos que o endpoint já traz os detalhes necessários (chamado, tecnico, apontamentos)
             const response = await api.get('/pedidos-fechamento/pendentes');
             setPedidos(response.data);
         } catch (error) {
@@ -193,12 +183,10 @@ export default function GerenciarFechamentos() {
         try {
             await api.patch(`/pedidos-fechamento/${pedidoId}/responder`, { status });
             
-            // Remove o pedido da lista após a resposta
             setPedidos(prev => prev.filter(p => p.id !== pedidoId));
             
             toast.success(`Pedido de fechamento ${status === 'aprovado' ? 'aprovado' : 'reprovado'} com sucesso!`); 
             
-            // Fecha o modal se a ação for bem-sucedida
             setIsDetailModalOpen(false);
             setSelectedPedido(null);
             
@@ -210,7 +198,6 @@ export default function GerenciarFechamentos() {
         }
     };
     
-    // Função para abrir o modal de detalhes
     const openDetailsModal = useCallback((pedido) => {
         setSelectedPedido(pedido);
         setIsDetailModalOpen(true);

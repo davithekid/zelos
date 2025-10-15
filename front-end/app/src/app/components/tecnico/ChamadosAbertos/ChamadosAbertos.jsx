@@ -9,8 +9,6 @@ import ModalImagem from './ModalImagem';
 
 export default function ChamadosAbertos({ funcionario }) {
     const [chamadosAbertos, setChamadosAbertos] = useState([]);
-    // O estado pedidosDoTecnico não é mais necessário, mas será mantido por enquanto para evitar quebras no CardChamado.
-    // Ele será um objeto vazio, pois a auto-atribuição não usa pedidos pendentes.
     const [pedidosDoTecnico, setPedidosDoTecnico] = useState({}); 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -26,11 +24,8 @@ export default function ChamadosAbertos({ funcionario }) {
         setError(null);
         
         try {
-            // Buscamos apenas os chamados disponíveis para o pool do técnico
             const chamadosResponse = await api.get('/chamados/pool-tecnico');
-            
-            // NÃO precisamos mais buscar pedidos-chamado
-            setPedidosDoTecnico({}); // Limpamos a lista de pedidos, pois não são mais usados
+            setPedidosDoTecnico({}); 
             setChamadosAbertos(chamadosResponse.data); 
             
         } catch (err) {
@@ -45,7 +40,6 @@ export default function ChamadosAbertos({ funcionario }) {
         fetchData();
     }, [funcionario]);
 
-    // FUNÇÃO ATUALIZADA: AUTO-ATRIBUIÇÃO DIRETA
     const handleAtribuir = async (chamadoId) => {
         if (!funcionario || !funcionario.id) {
             alert("Erro: ID do técnico não encontrado.");
@@ -53,30 +47,17 @@ export default function ChamadosAbertos({ funcionario }) {
         }
 
         try {
-            // 1. CHAMA A ROTA DE ATRIBUIÇÃO DIRETA (PATCH)
             const response = await api.patch(`/chamados/${chamadoId}/atribuir`, { 
                 tecnico_id: funcionario.id 
             });
             
             const chamadoAtribuido = response.data;
 
-            // 2. ATUALIZA O ESTADO NA LISTA LOCAL (ChamadosAbertos)
             setChamadosAbertos(prevChamados => 
-                prevChamados.filter(c => c.id !== chamadoId) // Remove o chamado da lista de abertos
+                prevChamados.filter(c => c.id !== chamadoId) 
             );
             
-            // Opcionalmente, você pode querer adicionar uma lógica para
-            // um modal de sucesso aqui, ou apenas fechar o modal.
             setModalAberto(true); 
-
-            // Se você quiser que o chamado permaneça na lista, mas com o status atualizado:
-            /*
-            setChamadosAbertos(prevChamados => 
-                prevChamados.map(c => 
-                    c.id === chamadoId ? chamadoAtribuido : c
-                )
-            );
-            */
             
         } catch (err) {
             console.error("Erro ao atribuir chamado:", err);

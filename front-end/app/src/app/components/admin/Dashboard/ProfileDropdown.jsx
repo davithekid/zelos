@@ -3,7 +3,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
-// <<< 1. Componente agora recebe 'handleLogout' como uma de suas props >>>
 export default function ProfileDropdown({ funcionario, getInitials, isProfileOpen, setProfileOpen, handleSelecao, dropdownRef, handleLogout }) {
   return (
     <div className="relative" ref={dropdownRef}>

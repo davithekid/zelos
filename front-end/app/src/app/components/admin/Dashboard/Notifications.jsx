@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, CheckCircle, Info, X } from 'lucide-react';
-// Importação necessária para formatação de data amigável
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -15,14 +14,12 @@ export default function Notifications({
   setNotificationsOpen,
   notificationsRef
 }) {
-  // Ícones padrões para as notificações
   const notificationAssets = {
     default: { icon: <Bell className="w-5 h-5 text-gray-500" /> }
   };
 
   return (
     <div className="relative" ref={notificationsRef}>
-      {/* Botão de notificações */}
       <motion.button
         onClick={() => setNotificationsOpen(!isNotificationsOpen)}
         className="relative p-2 rounded-full text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -41,11 +38,9 @@ export default function Notifications({
         )}
       </motion.button>
 
-      {/* Dropdown de notificações */}
       <AnimatePresence>
         {isNotificationsOpen && (
           <>
-            {/* Overlay para fechar em telas menores */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
@@ -62,7 +57,6 @@ export default function Notifications({
               transition={{ duration: 0.2, ease: "easeInOut" }}
               className="fixed inset-x-0 top-16 mx-auto w-[95vw] max-w-sm sm:max-w-md md:max-w-lg lg:fixed lg:right-4 lg:top-16 lg:inset-x-auto lg:mx-0 lg:w-96 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
             >
-              {/* Cabeçalho do Dropdown */}
               <div className="flex justify-between items-center p-4 border-b border-gray-200">
                 <div className="flex items-center">
                   <h3 className="font-bold text-lg text-gray-800">Notificações</h3>
@@ -89,8 +83,6 @@ export default function Notifications({
                   </button>
                 </div>
               </div>
-
-              {/* Lista de notificações com scroll */}
               <div className="max-h-[calc(100vh-10rem)] lg:max-h-[70vh] overflow-y-auto">
                 {notifications && notifications.length > 0 ? (
                   notifications.map(n => {
@@ -106,16 +98,13 @@ export default function Notifications({
                           {assets.icon}
                         </div>
                         <div className="flex-grow min-w-0">
-                          {/* CORREÇÃO: Usa 'n.mensagem' para o texto principal */}
                           <p className={`text-sm leading-relaxed ${!n.lida ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
                             {n.mensagem}
                           </p>
-                          {/* CORREÇÃO: Formata a data de 'n.criado_em' */}
                           <p className="text-xs text-gray-400 mt-2">
                             {formatDistanceToNow(new Date(n.criado_em), { addSuffix: true, locale: ptBR })}
                           </p>
                         </div>
-                        {/* Indicador de "não lida" */}
                         {!n.lida && (
                           <div className="ml-3 mt-1 flex-shrink-0">
                             <div className="w-2.5 h-2.5 bg-red-500 rounded-full" title="Não lida" />
@@ -133,7 +122,6 @@ export default function Notifications({
                 )}
               </div>
 
-              {/* Rodapé para mobile */}
               {notifications.length > 0 && (
                 <div className="p-3 border-t border-gray-200 bg-gray-50 sm:hidden">
                   <button

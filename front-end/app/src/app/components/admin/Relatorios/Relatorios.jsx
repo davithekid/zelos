@@ -13,10 +13,6 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner'; 
 import api from '../../../lib/api';
 
-// #################################################################
-// ############# FUNÇÕES E CONSTANTES AUXILIARES ###################
-// #################################################################
-
 const StatCard = ({ icon, title, value, color }) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -97,10 +93,6 @@ const exportToCSV = (data, filename) => {
     toast.success('Dados exportados para CSV!');
 };
 
-// #################################################################
-// ############# NOVO COMPONENTE WRAPPER PARA GRÁFICOS #############
-// #################################################################
-
 const ChartWrapper = ({ title, icon, data, filename, children, dataToExport = data, onExportComplete }) => {
     const chartRef = useRef(null);
     const [isExporting, setIsExporting] = useState(false);
@@ -122,8 +114,6 @@ const ChartWrapper = ({ title, icon, data, filename, children, dataToExport = da
 
             const printContainer = document.createElement('div');
             printContainer.id = 'print-container';
-            
-            // Certifica que o gráfico clonado tem 100% de largura para impressão
             const clonedChart = chartElement.cloneNode(true);
             clonedChart.style.width = '100%';
             clonedChart.style.height = 'auto';
@@ -148,13 +138,11 @@ const ChartWrapper = ({ title, icon, data, filename, children, dataToExport = da
             console.error("Erro ao exportar impressão:", error);
             toast.error("Falha na exportação de imagem. Tente novamente.");
         } finally {
-            // Restaura o DOM original
             document.body.innerHTML = originalBody;
             document.title = originalTitle;
             
             setIsExporting(false);
             
-            // Força a re-renderização do componente principal
             if (success && onExportComplete) {
                 onExportComplete();
             }
@@ -204,10 +192,6 @@ const ChartWrapper = ({ title, icon, data, filename, children, dataToExport = da
         </div>
     );
 };
-
-// #################################################################
-// ################# COMPONENTE PRINCIPAL (DASHBOARD) ##############
-// #################################################################
 
 export default function DashboardPage() {
     const [statusData, setStatusData] = useState([]);

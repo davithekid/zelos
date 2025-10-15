@@ -57,17 +57,27 @@ class ChamadoController {
 
     static async listar(req, res) {
         try {
-            const whereClause = {
+            const { tecnico_id } = req.query; 
+
+            let whereClause = {
                 '$usuario.funcao$': { [Op.ne]: 'tecnico' }
             };
+
+            if (tecnico_id) {
+                whereClause = {
+                    ...whereClause, 
+                    tecnico_id: tecnico_id
+                };
+            }
+
             const chamados = await Chamado.findAll({
                 include: [
-                    { model: Usuario, as: 'usuario', attributes: [] },
+                    { model: Usuario, as: 'usuario', attributes: ['nome'] },
                     { model: Usuario, as: 'tecnico' },
                     { model: Pool, as: 'pool' }
                 ],
                 where: whereClause,
-                order: [['criado_em', 'DESC']] 
+                order: [['criado_em', 'DESC']]
             });
             res.json(chamados);
         } catch (err) {
@@ -157,7 +167,7 @@ class ChamadoController {
 
             let updateData = {
                 tecnico_id: null,
-                status: 'aberto' 
+                status: 'aberto'
             };
 
             if (tecnico_id) {

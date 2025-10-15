@@ -5,7 +5,6 @@ import Image from 'next/image';
 import ActionButton from './ActionButton';
 import ConfirmationModal from './ConfirmaChamado'; 
 
-// Componente de imagem separado para melhor organização
 const ImagemComponente = ({ imgUrl, titulo, onAbrirImagem }) => (
   <motion.div
     whileHover={{ scale: 1.03 }}
@@ -25,7 +24,6 @@ const ImagemComponente = ({ imgUrl, titulo, onAbrirImagem }) => (
   </motion.div>
 );
 
-// Componente para informações do usuário
 const UserInfo = ({ usuario, criado_em }) => (
   <div className="flex items-center gap-3 mt-3">
     <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-500">
@@ -42,7 +40,6 @@ const UserInfo = ({ usuario, criado_em }) => (
   </div>
 );
 
-// Componente para status do chamado
 const StatusBadge = ({ tecnico_id }) => (
   <span className={`text-xs font-bold px-2 py-1 rounded-full ${
     tecnico_id 
@@ -54,7 +51,6 @@ const StatusBadge = ({ tecnico_id }) => (
 );
 
 export default function CardChamado({ chamado, onAtribuir, onAbrirImagem, isBlocked }) {
-  // 1. Não renderiza se estiver bloqueado ou sem chamado
   if (isBlocked || !chamado) {
     return null;
   }
