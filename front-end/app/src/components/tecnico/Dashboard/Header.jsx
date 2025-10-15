@@ -40,7 +40,7 @@ export default function Header({
     toast.success("Logout efetuado com sucesso.");
     Cookies.remove('token');
     setTimeout(() => {
-        router.push('/login');
+        router.push('/');
     }, 1000); 
   };
   

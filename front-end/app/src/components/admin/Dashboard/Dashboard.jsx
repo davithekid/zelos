@@ -47,10 +47,10 @@ export default function Dashboard() {
             } catch (error) {
                 console.error('Token inválido, redirecionando:', error);
                 Cookies.remove('token');
-                router.push('/login');
+                router.push('/');
             }
         } else {
-            router.push('/login');
+            router.push('/');
         }
         setIsLoading(false);
     }, [router]);
