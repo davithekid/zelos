@@ -24,11 +24,11 @@ const PoolManagementBanner = ({ setActiveTab }) => (
       <HiExclamationTriangle size={36} className="text-red-600 flex-shrink-0" />
       <div>
         <h3 className="text-xl font-extrabold leading-snug text-red-700">
-          Atenção: Cadastre suas <span className="underline">Pools de Atuação</span>
+          Atenção: Cadastre suas <span className="underline">Aréas de atuação</span>
         </h3>
         <p className="mt-2 text-base text-gray-800">
           <span className="font-bold text-red-700">Ação necessária:</span> 
-          {' '}Para começar a receber chamados, é obrigatório cadastrar suas pools (grupos de atuação) na aba{' '}
+          {' '}Para começar a receber chamados, é obrigatório cadastrar suas áreas de atuações na aba{' '}
           <span className="font-semibold">Perfil</span> ou solicitar ajuda à Administração.
         </p>
       </div>
