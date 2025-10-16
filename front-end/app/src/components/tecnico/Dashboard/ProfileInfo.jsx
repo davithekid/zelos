@@ -110,7 +110,7 @@ export default function ProfileInfo({ funcionario, getInitials }) {
           <div className={`p-3 rounded-lg border-2 ${editando ? 'border-blue-500 bg-blue-50/50' : 'border-transparent bg-gray-50'}`}>
             <div className="flex justify-between items-center mb-3">
               <span className="font-semibold text-gray-700 flex items-center gap-2">
-                <FiServer className="w-5 h-5" /> Pools de Atuação:
+                <FiServer className="w-5 h-5" /> Especialidades:
               </span>
 
               {!editando ? (
