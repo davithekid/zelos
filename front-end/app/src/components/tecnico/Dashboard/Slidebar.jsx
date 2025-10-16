@@ -24,9 +24,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   return (
     <aside className="hidden lg:flex bg-gradient-to-b from-gray-50 via-white to-gray-50 border-r border-gray-200 flex-col w-64 h-screen shadow-md">
       <div className="h-20 flex items-center justify-center border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-red-600 tracking-tight drop-shadow-sm">
-          SENAI | Técnico
-        </h1>
+          <img src='./zelos.svg' className='w-30'></img>
       </div>
 
       <nav className="flex-1 px-4 py-6 space-y-2">

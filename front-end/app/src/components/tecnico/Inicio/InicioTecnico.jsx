@@ -57,34 +57,19 @@ export default function InicioTecnico({ setActiveTab }) {
 
   const faqsTecnico = [
     {
-      question: 'Gerenciamento das suas Pools de Atuação',
-      answer:
-        'Como técnico, você precisa estar vinculado às **Pools (Grupos de Atuação)** corretas para receber os chamados. Vá até a sua aba **Perfil** e localize a seção de Pools para se cadastrar ou solicite à Administração para realizar o vínculo.',
-    },
-    {
       question: 'Como atribuo um chamado para mim?',
       answer:
-        'Na aba "Chamados Abertos", clique no chamado desejado e use o botão "Enviar Pedido".',
-    },
-    {
-      question: 'Como eu sei que um chamado foi atribuído?',
-      answer:
-        'Assim que a administração aprovar o pedido, o chamado estará disponível na aba "Chamados Atribuídos".',
+        'Na aba "Chamados Abertos", clique no chamado desejado e confirme.',
     },
     {
       question: 'Como faço apontamentos?',
       answer:
-        'Na aba "Chamados Atribuídos", envie seus apontamentos diretamente no chamado correspondente.',
+        'Na aba "Chamados Atribuídos", clique em detalhes e selecione "apontamento" diretamente no chamado correspondente.',
     },
     {
       question: 'Como fecho um chamado resolvido?',
       answer:
         'Na aba "Chamados Atribuídos", clique em "Detalhes" e selecione "Solicitar Fechamento". A solicitação será enviada à Administração.',
-    },
-    {
-      question: 'Como envio uma mensagem para a administração?',
-      answer:
-        'Na aba "Contato", envie sua mensagem e nossa equipe responderá o mais breve possível.',
     },
     {
       question: 'Como atribuo minhas especialidades no meu perfil?',
