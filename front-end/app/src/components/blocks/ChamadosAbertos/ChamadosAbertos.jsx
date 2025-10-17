@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import api from '../../../lib/api'; 
 import CardChamado from './CardChamado';
@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 
 export default function ChamadosAbertos({ funcionario }) {
     const [chamadosAbertos, setChamadosAbertos] = useState([]);
-    const [pedidosDoTecnico, setPedidosDoTecnico] = useState({}); 
+    const [temChamadoEmAndamento, setTemChamadoEmAndamento] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [modalAberto, setModalAberto] = useState(false);
@@ -29,30 +29,41 @@ export default function ChamadosAbertos({ funcionario }) {
         title: '',
         message: '',
     });
-    
-    const fetchData = async () => {
+
+    // 🔁 Função para verificar se o técnico ainda tem chamados em andamento
+    const verificarChamadoEmAndamento = useCallback(async () => {
         if (!funcionario || !funcionario.id) return;
-        
-        if (!chamadosAbertos.length) {
-            setIsLoading(true);
+
+        try {
+            const res = await api.get(`/chamados?tecnico_id=${funcionario.id}&status=em_andamento`);
+            setTemChamadoEmAndamento(res.data.length > 0);
+        } catch (err) {
+            console.error("Erro ao verificar chamados do técnico:", err);
         }
+    }, [funcionario]);
+
+    const fetchData = useCallback(async () => {
+        if (!funcionario || !funcionario.id) return;
+
+        setIsLoading(true);
         setError(null);
-        
+
         try {
             const chamadosResponse = await api.get('/chamados/pool-tecnico');
-            setPedidosDoTecnico({}); 
-            setChamadosAbertos(chamadosResponse.data); 
-            
+            setChamadosAbertos(chamadosResponse.data);
+
+            await verificarChamadoEmAndamento();
+
         } catch (err) {
             setError("Não foi possível carregar os dados. Tente atualizar a página.");
         } finally {
             setIsLoading(false);
         }
-    };
-    
+    }, [funcionario, verificarChamadoEmAndamento]);
+
     useEffect(() => {
         fetchData();
-    }, [funcionario]);
+    }, [fetchData]);
 
     const handleAtribuir = async (chamadoId) => {
         if (!funcionario || !funcionario.id) {
@@ -65,16 +76,14 @@ export default function ChamadosAbertos({ funcionario }) {
         }
 
         try {
-            const response = await api.patch(`/chamados/${chamadoId}/atribuir`, { 
-                tecnico_id: funcionario.id 
-            });
+            await api.patch(`/chamados/${chamadoId}/atribuir`, { tecnico_id: funcionario.id });
             
-            setChamadosAbertos(prevChamados => 
-                prevChamados.filter(c => c.id !== chamadoId) 
-            );
-            
-            setModalAberto(true); 
-            
+            setChamadosAbertos(prev => prev.filter(c => c.id !== chamadoId));
+            setModalAberto(true);
+
+            // 🔁 Atualiza status após atribuição
+            await verificarChamadoEmAndamento();
+
         } catch (err) {
             const errorMessage = err.response?.data?.message || "Não foi possível atribuir o chamado. Ele pode já ter sido atribuído a outro técnico.";
             
@@ -86,9 +95,17 @@ export default function ChamadosAbertos({ funcionario }) {
         }
     };
 
+    // 🔁 Atualiza automaticamente a cada 30 segundos
+    useEffect(() => {
+        const interval = setInterval(() => {
+            verificarChamadoEmAndamento();
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [verificarChamadoEmAndamento]);
+
     const abrirModalImagem = (url) => setImagemModal(url);
     const fecharModalImagem = () => setImagemModal(null);
-    
     const fecharErroModal = () => setErroModal(prev => ({ ...prev, isOpen: false }));
 
     if (isLoading) return <div className="text-center p-10">Carregando chamados...</div>;
@@ -106,14 +123,16 @@ export default function ChamadosAbertos({ funcionario }) {
                             <CardChamado
                                 key={chamado.id}
                                 chamado={chamado}
-                                pedidosDoTecnico={pedidosDoTecnico} 
                                 onAtribuir={handleAtribuir}
                                 onAbrirImagem={abrirModalImagem}
+                                isBlocked={temChamadoEmAndamento}
                             />
                         ))}
                     </div>
                 ) : (
-                    <p className="text-center text-gray-500 mt-10">Nenhum chamado aberto no momento, ou nenhum em seus pools de atuação.</p>
+                    <p className="text-center text-gray-500 mt-10">
+                        Nenhum chamado aberto no momento, ou nenhum em seus pools de atuação.
+                    </p>
                 )}
             </motion.div>
 

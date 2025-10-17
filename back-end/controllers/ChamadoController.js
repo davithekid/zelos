@@ -57,17 +57,18 @@ class ChamadoController {
 
     static async listar(req, res) {
         try {
-            const { tecnico_id } = req.query; 
+            const { tecnico_id, status } = req.query;
 
             let whereClause = {
                 '$usuario.funcao$': { [Op.ne]: 'tecnico' }
             };
 
             if (tecnico_id) {
-                whereClause = {
-                    ...whereClause, 
-                    tecnico_id: tecnico_id
-                };
+                whereClause.tecnico_id = tecnico_id;
+            }
+
+            if (status) {
+                whereClause.status = status;
             }
 
             const chamados = await Chamado.findAll({
@@ -79,12 +80,14 @@ class ChamadoController {
                 where: whereClause,
                 order: [['criado_em', 'DESC']]
             });
+
             res.json(chamados);
         } catch (err) {
             console.error(err);
             res.status(500).json({ message: 'Erro ao buscar chamados' });
         }
     }
+
 
     static async buscarPorId(req, res) {
         try {

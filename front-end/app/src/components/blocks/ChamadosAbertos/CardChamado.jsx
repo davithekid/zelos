@@ -51,10 +51,8 @@ const StatusBadge = ({ tecnico_id }) => (
 );
 
 export default function CardChamado({ chamado, onAtribuir, onAbrirImagem, isBlocked }) {
-  if (isBlocked || !chamado) {
-    return null;
-  }
-  
+  if (!chamado) return null;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const openModal = () => setIsModalOpen(true);

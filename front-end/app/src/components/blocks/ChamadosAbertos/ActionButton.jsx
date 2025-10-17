@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import { motion } from 'framer-motion';
 
 const ActionButton = ({ onClick, isBlocked }) => {
@@ -6,13 +6,13 @@ const ActionButton = ({ onClick, isBlocked }) => {
     
     if (isBlocked) {
         config = {
-            text: 'Máx. Chamados Atingido', 
-            className: 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-300',
+            text: 'Você já possui um chamado em andamento',
+            className: 'bg-gray-100 text-gray-500 cursor-not-allowed border border-gray-300 text-center',
             disabled: true,
         };
     } else {
         config = {
-            text: 'Atribuir para Mim', 
+            text: 'Atribuir para Mim',
             className: 'bg-green-600 text-white hover:bg-green-700 active:scale-95 cursor-pointer',
             disabled: false,
         };
