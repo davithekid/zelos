@@ -185,7 +185,7 @@ class ChamadoController {
 
                 if (chamadosAtivos >= 1) {
                     return res.status(400).json({
-                        message: `Atribuição falhou: O técnico ${tecnico.nome} já possui ${chamadosAtivos} chamado(s) ativo(s).`
+                        message: `Atribuição falhou: já possui um chamado ativo.`
                     });
                 }
                 updateData.tecnico_id = tecnico_id;
